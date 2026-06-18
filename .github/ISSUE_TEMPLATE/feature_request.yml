@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an enhancement (new CI platform, tool, VCS, etc.)
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [CI platform, tool/registry, VCS provider, config, TUI, CLI, other]

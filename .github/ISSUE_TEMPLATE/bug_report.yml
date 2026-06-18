@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a problem with probaci
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including the command you ran.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: probaci version
+      description: Output of `probaci version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Container backend
+      options: [docker, rootless docker, podman, none/--no-docker]
+  - type: input
+    id: os
+    attributes:
+      label: OS / arch
+      placeholder: e.g. macOS arm64, Linux amd64, Windows 386
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Paste output (probaci redacts secrets, but please double-check).
+      render: shell

@@ -1,0 +1,139 @@
+// Package tool is the data-driven registry that maps a logical tool name (e.g.
+// "gitleaks") to the container image and command used to run it. Users add or
+// override entries purely through config — adding a Java/Python/etc. tool needs
+// no recompile.
+package tool
+
+import (
+	"fmt"
+
+	"github.com/simtabi/probaci/internal/config"
+)
+
+// Tool is a resolved registry entry ready to run through the broker.
+type Tool struct {
+	Name       string
+	Image      string   // host/repo (no tag)
+	Tag        string   // floating tag
+	Digest     string   // sha256:… (preferred for pinning)
+	Entrypoint string   // optional entrypoint override
+	Args       []string // default command args
+	Exec       string   // docker|local|auto
+	Languages  []string
+	// NeedsNet is true for tools that must reach the network (vuln-DB downloads,
+	// dependency installs). Everything else runs fully offline.
+	NeedsNet bool
+}
+
+// Ref returns the image reference, pinned by digest when available.
+func (t Tool) Ref() string {
+	if t.Digest != "" {
+		return t.Image + "@" + t.Digest
+	}
+	if t.Tag != "" {
+		return t.Image + ":" + t.Tag
+	}
+	return t.Image + ":latest"
+}
+
+// builtin is the default registry. Digests are intentionally left blank in this
+// scaffold; release tooling pins them. Tags are conservative, well-known images.
+var builtin = map[string]Tool{
+	// Workflow / CI linters
+	"actionlint": {Name: "actionlint", Image: "rhysd/actionlint", Tag: "latest", Args: []string{"-color"}},
+	"yamllint":   {Name: "yamllint", Image: "pipelinecomponents/yamllint", Tag: "latest", Args: []string{"."}},
+	"hadolint":   {Name: "hadolint", Image: "hadolint/hadolint", Tag: "latest"},
+	// Security / secrets / SAST
+	"gitleaks": {Name: "gitleaks", Image: "zricethezav/gitleaks", Tag: "latest", Args: []string{"dir", "--no-banner", "--redact", "."}},
+	"trivy":    {Name: "trivy", Image: "aquasec/trivy", Tag: "latest", Args: []string{"fs", "--quiet", "."}, NeedsNet: true},
+	"grype":    {Name: "grype", Image: "anchore/grype", Tag: "latest", Args: []string{"dir:."}, NeedsNet: true},
+	"semgrep":  {Name: "semgrep", Image: "semgrep/semgrep", Tag: "latest", Args: []string{"semgrep", "scan", "--error", "--config", "auto"}, NeedsNet: true},
+	// Commit hygiene
+	"commitlint": {Name: "commitlint", Image: "commitlint/commitlint", Tag: "latest"},
+	// Language linters
+	"golangci-lint": {Name: "golangci-lint", Image: "golangci/golangci-lint", Tag: "latest", Args: []string{"golangci-lint", "run"}, Languages: []string{"go"}},
+	"govulncheck":   {Name: "govulncheck", Image: "golang", Tag: "latest", Entrypoint: "/bin/sh", Args: []string{"-c", "go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./..."}, Languages: []string{"go"}, NeedsNet: true},
+	"ruff":          {Name: "ruff", Image: "ghcr.io/astral-sh/ruff", Tag: "latest", Args: []string{"check", "."}, Languages: []string{"python"}},
+	"pip-audit":     {Name: "pip-audit", Image: "python", Tag: "3-slim", Entrypoint: "/bin/sh", Args: []string{"-c", "pip install --quiet pip-audit && pip-audit"}, Languages: []string{"python"}, NeedsNet: true},
+	"eslint":        {Name: "eslint", Image: "node", Tag: "lts-slim", Entrypoint: "/bin/sh", Args: []string{"-c", "npx --no-install eslint ."}, Languages: []string{"node"}},
+	"checkstyle":    {Name: "checkstyle", Image: "checkstyle/checkstyle", Tag: "latest", Languages: []string{"java"}},
+	// Language audit/lint tools that run in their language base image. These
+	// install the tool on demand so a single base image covers the ecosystem;
+	// every entry referenced by internal/detect must exist here (guarded by a test).
+	"npm-audit":              {Name: "npm-audit", Image: "node", Tag: "lts-slim", Entrypoint: "/bin/sh", Args: []string{"-c", "npm audit --audit-level=high"}, Languages: []string{"node"}, NeedsNet: true},
+	"pnpm-audit":             {Name: "pnpm-audit", Image: "node", Tag: "lts-slim", Entrypoint: "/bin/sh", Args: []string{"-c", "corepack enable >/dev/null 2>&1; pnpm audit"}, Languages: []string{"node"}, NeedsNet: true},
+	"yarn-audit":             {Name: "yarn-audit", Image: "node", Tag: "lts-slim", Entrypoint: "/bin/sh", Args: []string{"-c", "corepack enable >/dev/null 2>&1; yarn npm audit || yarn audit"}, Languages: []string{"node"}, NeedsNet: true},
+	"clippy":                 {Name: "clippy", Image: "rust", Tag: "latest", Entrypoint: "/bin/sh", Args: []string{"-c", "rustup component add clippy >/dev/null 2>&1 || true; cargo clippy --quiet -- -D warnings"}, Languages: []string{"rust"}, NeedsNet: true},
+	"cargo-audit":            {Name: "cargo-audit", Image: "rust", Tag: "latest", Entrypoint: "/bin/sh", Args: []string{"-c", "cargo install --quiet cargo-audit >/dev/null 2>&1 || true; cargo audit"}, Languages: []string{"rust"}, NeedsNet: true},
+	"rubocop":                {Name: "rubocop", Image: "ruby", Tag: "latest", Entrypoint: "/bin/sh", Args: []string{"-c", "gem install --silent rubocop >/dev/null 2>&1 || true; rubocop"}, Languages: []string{"ruby"}, NeedsNet: true},
+	"bundler-audit":          {Name: "bundler-audit", Image: "ruby", Tag: "latest", Entrypoint: "/bin/sh", Args: []string{"-c", "gem install --silent bundler-audit >/dev/null 2>&1 || true; bundle-audit check --update"}, Languages: []string{"ruby"}, NeedsNet: true},
+	"owasp-dependency-check": {Name: "owasp-dependency-check", Image: "owasp/dependency-check", Tag: "latest", Args: []string{"--scan", "/workspace", "--project", "probaci", "--out", "/tmp", "--failOnCVSS", "11"}, Languages: []string{"java"}, NeedsNet: true},
+}
+
+// Registry resolves tools from built-in defaults overlaid with config overrides.
+type Registry struct {
+	overrides map[string]config.Tool
+}
+
+// New builds a Registry from a config's tools map (may be nil).
+func New(overrides map[string]config.Tool) *Registry {
+	return &Registry{overrides: overrides}
+}
+
+// Resolve returns the tool for name, applying any config override on top of the
+// built-in entry.
+func (r *Registry) Resolve(name string) (Tool, error) {
+	t, ok := builtin[name]
+	if !ok {
+		// A purely user-defined tool is allowed if the override carries an image.
+		if ov, has := r.overrides[name]; has && ov.Image != "" {
+			return applyOverride(Tool{Name: name}, ov), nil
+		}
+		return Tool{}, fmt.Errorf("unknown tool %q (define it under tools.%s in config)", name, name)
+	}
+	if ov, has := r.overrides[name]; has {
+		t = applyOverride(t, ov)
+	}
+	return t, nil
+}
+
+func applyOverride(t Tool, ov config.Tool) Tool {
+	if ov.Image != "" {
+		t.Image = ov.Image
+	}
+	if ov.Tag != "" {
+		t.Tag = ov.Tag
+	}
+	if ov.Digest != "" {
+		t.Digest = ov.Digest
+	}
+	if ov.Entrypoint != "" {
+		t.Entrypoint = ov.Entrypoint
+	}
+	if len(ov.CmdTemplate) > 0 {
+		t.Args = append([]string(nil), ov.CmdTemplate...)
+	}
+	if ov.Exec != "" {
+		t.Exec = ov.Exec
+	}
+	if len(ov.Languages) > 0 {
+		t.Languages = append([]string(nil), ov.Languages...)
+	}
+	return t
+}
+
+// HasImage reports whether the named tool exists in the built-in registry.
+func HasImage(name string) bool {
+	_, ok := builtin[name]
+	return ok
+}
+
+// Names returns all built-in tool names (sorted insertion is not guaranteed;
+// callers that need order should sort).
+func Names() []string {
+	out := make([]string, 0, len(builtin))
+	for k := range builtin {
+		out = append(out, k)
+	}
+	return out
+}

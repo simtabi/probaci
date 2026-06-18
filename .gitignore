@@ -1,0 +1,21 @@
+# Binaries
+/probaci
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+
+# Go
+/vendor/
+coverage.txt
+coverage.html
+
+# probaci local state
+.probaci/
+probaci.json.*.bak
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
