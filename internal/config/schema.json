@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opensource.simtabi.com/documentation/probaci/config.schema.json",
+  "title": "probaci configuration",
+  "type": "object",
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "members": { "type": "array", "items": { "type": "string" }, "description": "Workspace globs; a bare `probaci run` expands them." },
+    "project": {
+      "type": "object",
+      "properties": {
+        "languages": { "type": "array", "items": { "type": "string" } },
+        "install_cmd": { "type": "string" },
+        "test_cmd": { "type": "string" },
+        "lint_cmd": { "type": "string" },
+        "audit_cmd": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "docker": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "backend": { "enum": ["auto", "docker", "rootless", "podman"] },
+        "pull": { "enum": ["missing", "always", "never"] },
+        "network": { "type": "string" },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "memory": { "type": "string" },
+            "cpus": { "type": "string" },
+            "pids_limit": { "type": "integer" }
+          },
+          "additionalProperties": false
+        },
+        "allow_socket_mount": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "security": {
+      "type": "object",
+      "properties": {
+        "verify_images": { "enum": ["advisory", "strict"] },
+        "allow_unsigned": { "type": "array", "items": { "type": "string" } },
+        "registry_mirror": { "type": "string" },
+        "cosign_identity": { "type": "string" },
+        "cosign_issuer": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "platforms": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "base_url": { "type": "string" },
+          "token_env": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "enabled": { "type": "boolean" },
+          "options": { "type": "object" }
+        },
+        "required": ["name"],
+        "additionalProperties": false
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "image": { "type": "string" },
+          "tag": { "type": "string" },
+          "digest": { "type": "string" },
+          "entrypoint": { "type": "string" },
+          "cmd": { "type": "array", "items": { "type": "string" } },
+          "exec": { "enum": ["docker", "local", "auto"] },
+          "languages": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "secrets_file": { "type": "string" },
+    "env_file": { "type": "string" },
+    "tui": {
+      "type": "object",
+      "properties": { "theme": { "enum": ["auto", "dark", "light"] } },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

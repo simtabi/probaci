@@ -1,0 +1,127 @@
+# GoReleaser configuration — cross-platform/arch builds, checksums, cosign
+# signing, SLSA provenance, and an SBOM per release.
+version: 2
+
+project_name: probaci
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: probaci
+    main: ./cmd/probaci
+    binary: probaci
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/simtabi/probaci/internal/version.Version={{.Version}}
+      - -X github.com/simtabi/probaci/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/simtabi/probaci/internal/version.Date={{.Date}}
+    goos: [linux, darwin, windows]
+    goarch: ["amd64", "arm64", "arm", "386"]
+    goarm: ["6", "7"]
+    ignore:
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: "386"
+      - goos: windows
+        goarch: arm
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+# Local `goreleaser release --snapshot` (see `task bundle`) gets a sane version.
+snapshot:
+  version_template: "{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}"
+
+sboms:
+  - artifacts: archive
+
+# Keyless cosign signing of the checksums file (release CI only; skipped in
+# snapshot/bundle). OIDC provides the identity.
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+nfpms:
+  - id: packages
+    formats: [deb, rpm]
+    maintainer: "Imani Manyara <imani@simtabi.com>"
+    vendor: "Simtabi LLC"
+    homepage: "https://opensource.simtabi.com/products/probaci"
+    description: "Prove your CI pipeline before you push."
+    license: MIT
+
+dockers:
+  - image_templates:
+      - "ghcr.io/simtabi/probaci:{{ .Version }}-amd64"
+    use: buildx
+    goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.source=https://github.com/simtabi/probaci"
+  - image_templates:
+      - "ghcr.io/simtabi/probaci:{{ .Version }}-arm64"
+    use: buildx
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.source=https://github.com/simtabi/probaci"
+
+docker_manifests:
+  - name_template: "ghcr.io/simtabi/probaci:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/simtabi/probaci:{{ .Version }}-amd64"
+      - "ghcr.io/simtabi/probaci:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/simtabi/probaci:latest"
+    image_templates:
+      - "ghcr.io/simtabi/probaci:{{ .Version }}-amd64"
+      - "ghcr.io/simtabi/probaci:{{ .Version }}-arm64"
+
+brews:
+  - name: probaci
+    repository:
+      owner: simtabi
+      name: homebrew-tap
+      # Cross-repo tap push needs a PAT (the default GITHUB_TOKEN is scoped to
+      # this repo). Set the TAP_GITHUB_TOKEN secret before releasing.
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    homepage: "https://opensource.simtabi.com/products/probaci"
+    description: "Prove your CI pipeline before you push."
+    license: MIT
+
+scoops:
+  - repository:
+      owner: simtabi
+      name: scoop-bucket
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    homepage: "https://opensource.simtabi.com/products/probaci"
+    description: "Prove your CI pipeline before you push."
+    license: MIT
+
+release:
+  github:
+    owner: simtabi
+    name: probaci

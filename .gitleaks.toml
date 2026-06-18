@@ -1,0 +1,14 @@
+# gitleaks configuration for probaci. Extends the default ruleset and allowlists
+# the synthetic, token-shaped strings used to TEST the secret redactor — they are
+# not real credentials.
+title = "probaci"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic token-shaped fixtures for the redactor (not real secrets)"
+paths = [
+  '''internal/secret/redact_test\.go''',
+  '''internal/secret/redact\.go''',
+]

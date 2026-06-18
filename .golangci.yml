@@ -1,0 +1,38 @@
+# golangci-lint configuration for probaci.
+# Conservative, high-signal linter set — fails the build on real problems, not style nits.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - unconvert
+    - bodyclose
+    - nilerr
+
+  settings:
+    misspell:
+      locale: US
+    revive:
+      rules:
+        - name: exported
+          disabled: true   # comments enforced by review, not the linter
+
+  exclusions:
+    # std-error-handling drops errcheck noise on deferred Close()/Remove() and
+    # fmt.Fprint* — intentional fire-and-forget calls, not real bugs.
+    presets:
+      - std-error-handling
+      - common-false-positives
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
