@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: securego/gosec@6fbd381238e97e1d1f3358f0d6d65de78dcf9245 # v2.22.5
+      - uses: securego/gosec@9e6a9843d7a4a6e3e9a8539b02612c8a4aa3f889 # v2.22.5
         with:
           # probaci is a CI orchestrator: it runs subprocesses (G204) and reads/
           # writes user-named files (G304/G306) with conventional perms
