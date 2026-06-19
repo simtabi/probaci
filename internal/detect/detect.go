@@ -99,7 +99,9 @@ func detectPython(dir string) Language {
 }
 
 func detectJava(dir string) Language {
-	l := Language{Name: "java", LintTool: "checkstyle", AuditTool: "owasp-dependency-check"}
+	// No reliable zero-config containerized Java linter (checkstyle/PMD need a
+	// project ruleset); leave LintTool empty so users opt in via config.
+	l := Language{Name: "java", AuditTool: "owasp-dependency-check"}
 	if exists(dir, "pom.xml") {
 		l.InstallCmd, l.TestCmd = "mvn -q -B dependency:go-offline", "mvn -q -B test"
 	} else {

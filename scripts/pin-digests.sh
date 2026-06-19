@@ -25,18 +25,27 @@ import json, subprocess, sys, os
 
 runtime = os.environ.get("RUNTIME", "docker")
 tools = json.load(sys.stdin)
-pinned = {}
+pinned, failed = {}, []
 for t in tools:
     ref = t["image"] + ":" + (t["tag"] or "latest")
     sys.stderr.write("pulling %s ...\n" % ref)
-    subprocess.run([runtime, "pull", "--quiet", ref], check=True, stdout=subprocess.DEVNULL)
-    out = subprocess.check_output(
-        [runtime, "inspect", "--format", "{{index .RepoDigests 0}}", ref]
-    ).decode().strip()
-    # out looks like image@sha256:...
+    try:
+        subprocess.run([runtime, "pull", "--quiet", ref], check=True,
+                       stdout=subprocess.DEVNULL)
+        out = subprocess.check_output(
+            [runtime, "inspect", "--format", "{{index .RepoDigests 0}}", ref]
+        ).decode().strip()
+    except subprocess.CalledProcessError:
+        sys.stderr.write("  SKIP %s (pull/inspect failed)\n" % ref)
+        failed.append(t["name"])
+        continue
     digest = out.split("@", 1)[1] if "@" in out else ""
     if digest:
         pinned[t["name"]] = {"image": t["image"], "tag": t["tag"], "digest": digest}
+    else:
+        failed.append(t["name"])
 
+if failed:
+    sys.stderr.write("\nNOT pinned (resolve these images): %s\n" % ", ".join(sorted(failed)))
 print(json.dumps({"tools": pinned}, indent=2))
 '

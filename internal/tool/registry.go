@@ -56,7 +56,6 @@ var builtin = map[string]Tool{
 	"ruff":          {Name: "ruff", Image: "ghcr.io/astral-sh/ruff", Tag: "latest", Args: []string{"check", "."}, Languages: []string{"python"}},
 	"pip-audit":     {Name: "pip-audit", Image: "python", Tag: "3-slim", Entrypoint: "/bin/sh", Args: []string{"-c", "pip install --quiet pip-audit && pip-audit"}, Languages: []string{"python"}, NeedsNet: true},
 	"eslint":        {Name: "eslint", Image: "node", Tag: "lts-slim", Entrypoint: "/bin/sh", Args: []string{"-c", "npx --no-install eslint ."}, Languages: []string{"node"}},
-	"checkstyle":    {Name: "checkstyle", Image: "checkstyle/checkstyle", Tag: "latest", Languages: []string{"java"}},
 	// Language audit/lint tools that run in their language base image. These
 	// install the tool on demand so a single base image covers the ecosystem;
 	// every entry referenced by internal/detect must exist here (guarded by a test).
