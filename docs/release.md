@@ -33,14 +33,16 @@ PROBACI_VERSION=0.0.0-SNAPSHOT-<commit> PROBACI_BASE_URL="file://$PWD/dist" \
 
 ## Pinning tool-image digests
 
-Before a release, pin the registry images by digest for tamper-evident,
-reproducible runs (the trust gate flags unpinned images as advisory):
+The built-in tool images ship pinned by digest (`internal/tool/digests.json`,
+embedded into the binary). Refresh the pins periodically — run in a connected
+environment with a container runtime + python3 and a built `probaci`:
 
 ```sh
-./scripts/pin-digests.sh > tools.pinned.json   # needs docker + python3, connected
+PROBACI=./bin/probaci ./scripts/pin-digests.sh > internal/tool/digests.json
 ```
 
-Merge the resulting `tools` object into the registry defaults / shipped config.
+Images that fail to pull are reported and left unpinned (advisory). Commit the
+regenerated `digests.json`.
 
 ## Cutting a release
 

@@ -1,14 +1,13 @@
 #!/bin/sh
-# pin-digests.sh — pull every probaci tool image and emit a tools.json that pins
-# each by sha256 digest, for reproducible/tamper-evident runs.
+# pin-digests.sh — pull every probaci tool image and emit a name->sha256 digest
+# map for reproducible/tamper-evident runs.
 #
-# Run in a network-connected environment with a container runtime:
+# Regenerate the shipped pins (run in a network-connected env with a container
+# runtime + python3, and a built probaci on PATH or via PROBACI=...):
 #
-#   ./scripts/pin-digests.sh > tools.pinned.json
+#   ./scripts/pin-digests.sh > internal/tool/digests.json
 #
-# Then merge the "tools" object into your probaci.json (or drop it at
-# ~/.config/probaci/tools.json). Requires: a built probaci on PATH (or `go run`),
-# a container runtime (docker/podman), and python3 for JSON handling.
+# Images that fail to pull are reported on stderr and skipped (not pinned).
 set -eu
 
 PROBACI="${PROBACI:-probaci}"
@@ -47,5 +46,7 @@ for t in tools:
 
 if failed:
     sys.stderr.write("\nNOT pinned (resolve these images): %s\n" % ", ".join(sorted(failed)))
-print(json.dumps({"tools": pinned}, indent=2))
+# Flat name -> digest map, embedded by internal/tool as digests.json.
+flat = {name: meta["digest"] for name, meta in sorted(pinned.items())}
+print(json.dumps(flat, indent=2))
 '
