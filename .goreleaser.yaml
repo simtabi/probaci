@@ -101,22 +101,37 @@ docker_manifests:
       - "ghcr.io/simtabi/probaci:{{ .Version }}-arm64"
 
 brews:
+  # The tap is shared across all Simtabi products: GoReleaser writes only this
+  # product's Formula/probaci.rb into simtabi/homebrew-tap, leaving every other
+  # product's formula untouched. Users: `brew install simtabi/tap/probaci`.
   - name: probaci
+    directory: Formula
     repository:
       owner: simtabi
       name: homebrew-tap
+      branch: main
       # Cross-repo tap push needs a PAT (the default GITHUB_TOKEN is scoped to
       # this repo). Set the TAP_GITHUB_TOKEN secret before releasing.
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: Imani Manyara
+      email: imanimanyara@users.noreply.github.com
     homepage: "https://opensource.simtabi.com/products/probaci"
     description: "Prove your CI pipeline before you push."
     license: MIT
 
 scoops:
-  - repository:
+  # Shared Scoop bucket, one manifest per product (bucket/probaci.json).
+  - name: probaci
+    directory: bucket
+    repository:
       owner: simtabi
       name: scoop-bucket
+      branch: main
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: Imani Manyara
+      email: imanimanyara@users.noreply.github.com
     homepage: "https://opensource.simtabi.com/products/probaci"
     description: "Prove your CI pipeline before you push."
     license: MIT
