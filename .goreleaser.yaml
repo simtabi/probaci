@@ -30,6 +30,13 @@ builds:
       - goos: windows
         goarch: arm
 
+# A single macOS universal binary (amd64 + arm64) alongside the per-arch ones.
+universal_binaries:
+  - id: probaci
+    ids: [probaci]
+    name_template: probaci
+    replace: false
+
 archives:
   - formats: [tar.gz]
     format_overrides:
@@ -43,6 +50,13 @@ checksum:
 # Local `goreleaser release --snapshot` (see `task bundle`) gets a sane version.
 snapshot:
   version_template: "{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}"
+
+# Reproducible source tarball, uploaded as a first-class release asset next to
+# GitHub's auto-generated "Source code" links, so every release ships the exact
+# code as well as the binaries.
+source:
+  enabled: true
+  name_template: "{{ .ProjectName }}_{{ .Version }}_source"
 
 sboms:
   - artifacts: archive

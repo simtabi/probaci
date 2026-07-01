@@ -2,6 +2,7 @@
 /probaci
 /bin/
 /dist/
+/build/dist/
 *.exe
 *.test
 *.out
