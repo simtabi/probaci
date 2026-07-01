@@ -114,35 +114,23 @@ signs:
     artifacts: checksum
     output: true
 
-dockers:
-  - image_templates:
-      - "ghcr.io/simtabi/probaci:{{ .Version }}-amd64"
-    use: buildx
-    goos: linux
-    goarch: amd64
+# Multi-arch container images built and pushed to ghcr.io in one buildx step,
+# with the multi-platform manifest created automatically. dockers_v2 replaces
+# the deprecated dockers + docker_manifests blocks.
+dockers_v2:
+  - id: probaci
+    ids: [probaci]
+    images:
+      - ghcr.io/simtabi/probaci
+    tags:
+      - "{{ .Version }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
     dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.source=https://github.com/simtabi/probaci"
-  - image_templates:
-      - "ghcr.io/simtabi/probaci:{{ .Version }}-arm64"
-    use: buildx
-    goos: linux
-    goarch: arm64
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--label=org.opencontainers.image.source=https://github.com/simtabi/probaci"
-
-docker_manifests:
-  - name_template: "ghcr.io/simtabi/probaci:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/simtabi/probaci:{{ .Version }}-amd64"
-      - "ghcr.io/simtabi/probaci:{{ .Version }}-arm64"
-  - name_template: "ghcr.io/simtabi/probaci:latest"
-    image_templates:
-      - "ghcr.io/simtabi/probaci:{{ .Version }}-amd64"
-      - "ghcr.io/simtabi/probaci:{{ .Version }}-arm64"
+    labels:
+      org.opencontainers.image.source: "https://github.com/simtabi/probaci"
 
 homebrew_casks:
   # The tap is shared across all Simtabi products: GoReleaser writes only this
