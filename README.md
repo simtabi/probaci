@@ -45,11 +45,11 @@ Most users install the binary (you only need the source to change probaci):
 brew install simtabi/tap/probaci
 
 # macOS / Linux — install script (downloads + checksum-verifies the right binary)
-curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.sh | bash
 
 # Windows — Scoop, or the install script
 scoop bucket add simtabi https://github.com/simtabi/scoop-bucket; scoop install probaci
-irm https://raw.githubusercontent.com/simtabi/probaci/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.ps1 | iex
 
 # Go toolchain
 go install github.com/simtabi/probaci/cmd/probaci@latest

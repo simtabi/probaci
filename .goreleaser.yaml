@@ -4,6 +4,10 @@ version: 2
 
 project_name: probaci
 
+# Keep all build tooling under a single build/ folder: inputs (targets.txt) at
+# build/ root, generated artifacts under build/dist/ (gitignored).
+dist: build/dist
+
 before:
   hooks:
     - go mod tidy
@@ -37,15 +41,47 @@ universal_binaries:
     name_template: probaci
     replace: false
 
+# All artifacts use one flat, versionless, Go-style naming scheme:
+#   probaci_<os>_<arch>[.ext]  with darwin → macos, e.g.
+#   probaci_macos_arm64, probaci_linux_amd64, probaci_windows_386.exe,
+#   probaci_macos_universal, probaci_linux_armv7.
+# The release tag carries the version. install scripts reconstruct these names.
 archives:
-  - formats: [tar.gz]
+  - id: binary
+    ids: [probaci]
+    formats: [binary]
+    name_template: &name >-
+      probaci_{{- if eq .Os "darwin" }}macos{{ else }}{{ .Os }}{{ end }}_
+      {{- if eq .Arch "all" }}universal{{ else if eq .Arch "arm" }}armv{{ .Arm }}{{ else }}{{ .Arch }}{{ end }}
+
+  - id: archive
+    ids: [probaci]
+    name_template: *name
     format_overrides:
       - goos: windows
         formats: [zip]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+# Native Linux packages (nfpm operates on the Linux builds only).
+nfpms:
+  - id: packages
+    ids: [probaci]
+    package_name: probaci
+    formats: [deb, rpm, apk]
+    maintainer: "Imani Manyara <imani@simtabi.com>"
+    vendor: "Simtabi LLC"
+    homepage: "https://opensource.simtabi.com/products/probaci"
+    description: "Prove your CI pipeline before you push."
+    license: MIT
+    bindir: /usr/bin
+    file_name_template: 'probaci_linux_{{ if eq .Arch "arm" }}armv{{ .Arm }}{{ else }}{{ .Arch }}{{ end }}'
 
 checksum:
   name_template: "checksums.txt"
+  algorithm: sha256
 
 # Local `goreleaser release --snapshot` (see `task bundle`) gets a sane version.
 snapshot:
@@ -58,8 +94,11 @@ source:
   enabled: true
   name_template: "{{ .ProjectName }}_{{ .Version }}_source"
 
+# One SBOM per archive (syft, SPDX-JSON), attached as release assets so
+# consumers can audit the supply chain of what they download.
 sboms:
-  - artifacts: archive
+  - id: archive
+    artifacts: archive
 
 # Keyless cosign signing of the checksums file (release CI only; skipped in
 # snapshot/bundle). OIDC provides the identity.
@@ -74,15 +113,6 @@ signs:
       - "--yes"
     artifacts: checksum
     output: true
-
-nfpms:
-  - id: packages
-    formats: [deb, rpm]
-    maintainer: "Imani Manyara <imani@simtabi.com>"
-    vendor: "Simtabi LLC"
-    homepage: "https://opensource.simtabi.com/products/probaci"
-    description: "Prove your CI pipeline before you push."
-    license: MIT
 
 dockers:
   - image_templates:
@@ -114,12 +144,13 @@ docker_manifests:
       - "ghcr.io/simtabi/probaci:{{ .Version }}-amd64"
       - "ghcr.io/simtabi/probaci:{{ .Version }}-arm64"
 
-brews:
+homebrew_casks:
   # The tap is shared across all Simtabi products: GoReleaser writes only this
-  # product's Formula/probaci.rb into simtabi/homebrew-tap, leaving every other
-  # product's formula untouched. Users: `brew install simtabi/tap/probaci`.
+  # product's Casks/probaci.rb into simtabi/homebrew-tap, leaving every other
+  # product's cask untouched. Users: `brew install simtabi/tap/probaci`.
   - name: probaci
-    directory: Formula
+    ids: [archive]
+    directory: Casks
     repository:
       owner: simtabi
       name: homebrew-tap
@@ -132,11 +163,19 @@ brews:
       email: imanimanyara@users.noreply.github.com
     homepage: "https://opensource.simtabi.com/products/probaci"
     description: "Prove your CI pipeline before you push."
-    license: MIT
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr",
+              args: ["-dr", "com.apple.quarantine", "#{staged_path}/probaci"],
+              sudo: false
+          end
 
 scoops:
   # Shared Scoop bucket, one manifest per product (bucket/probaci.json).
   - name: probaci
+    ids: [archive]
     directory: bucket
     repository:
       owner: simtabi
@@ -155,6 +194,7 @@ winget:
   # Gated behind SKIP_WINDOWS_PKGS until the winget-pkgs fork exists.
   - name: probaci
     publisher: Simtabi
+    ids: [archive]
     license: MIT
     homepage: "https://opensource.simtabi.com/products/probaci"
     short_description: "Prove your CI pipeline before you push."

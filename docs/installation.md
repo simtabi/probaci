@@ -23,23 +23,23 @@ scoop install probaci
 verifies its checksum, installs it on your PATH):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.sh | bash
 ```
 
 **Windows — install script:**
 
 ```powershell
-irm https://raw.githubusercontent.com/simtabi/probaci/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.ps1 | iex
 ```
 
-The script installs to `/usr/local/bin` when it's writable or you're root,
-otherwise `~/.local/bin` (Windows: `%LOCALAPPDATA%\Programs\probaci`, or
-`%ProgramFiles%\probaci` when elevated). Override with `PROBACI_INSTALL_DIR`, and
-pin a version with `PROBACI_VERSION`:
+The script installs to `/usr/local/bin` by default, requesting `sudo` only if
+that directory isn't writable (Windows: `%LOCALAPPDATA%\Programs\probaci`).
+Override the directory with `PROBACI_INSTALL_DIR`, and pin a version by passing
+it as an argument:
 
 ```sh
-PROBACI_VERSION=0.1.0 PROBACI_INSTALL_DIR="$HOME/bin" \
-  curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/install.sh | sh
+PROBACI_INSTALL_DIR="$HOME/bin" \
+  curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.sh | bash -s v0.1.0
 ```
 
 ## Run it globally
