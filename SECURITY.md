@@ -2,7 +2,9 @@
 
 ## Reporting a vulnerability
 
-Please report security issues privately to **opensource@simtabi.com**. Do not
+The preferred channel is GitHub private vulnerability reporting: open a private report at <https://github.com/simtabi/probaci/security/advisories/new>. The report stays attached to the repository, with a draft advisory and a CVE request path. Email **security@simtabi.com** if you do not use GitHub.
+
+Please report security issues privately to **security@simtabi.com**. Do not
 open a public issue for vulnerabilities. You will receive an acknowledgement
 within a few business days, and we will keep you informed as we work on a fix.
 
