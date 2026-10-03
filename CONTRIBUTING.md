@@ -1,5 +1,7 @@
 # Contributing to probaci
 
+Where this file is silent, the [Simtabi contributing guide](https://github.com/simtabi/.github/blob/HEAD/CONTRIBUTING.md) applies.
+
 Thanks for your interest in improving probaci.
 
 ## Development
