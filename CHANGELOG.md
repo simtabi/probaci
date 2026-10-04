@@ -60,3 +60,5 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   canceled context.
 - golangci-lint and gosec gates pass (with documented, justified exclusions for a
   CI orchestrator); the gosec action is pinned by commit SHA.
+
+[Unreleased]: https://github.com/simtabi/probaci/commits/HEAD
