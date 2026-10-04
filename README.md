@@ -58,7 +58,18 @@ go install github.com/simtabi/probaci/cmd/probaci@latest
 deb/rpm packages and a container image are published per release. Full details,
 PATH guidance, and building from source: [docs/installation.md](docs/installation.md).
 
-## Quickstart
+## Quick start guide and usage
+
+### Getting started
+
+1. Check the runtime, and what probaci detects in the repository:
+   `probaci doctor`.
+2. Write a `probaci.json` for the repository, detected from its contents:
+   `probaci init` (`--force` overwrites an existing one).
+3. Optionally, write the user-global config from defaults:
+   `probaci config init`.
+
+### Usage
 
 ```sh
 probaci doctor              # runtime, detected languages/platforms/VCS
@@ -75,6 +86,9 @@ probaci run --only secrets,lint ./api ./web
 probaci run --skip workflow-run
 probaci run --repos ./api,./web --jobs 2     # comma form (CI/env friendly)
 ```
+
+The full command reference is in [probaci tool](docs/tools/probaci.md); everything
+else is in the [documentation index](#documentation).
 
 ## The pipeline
 
