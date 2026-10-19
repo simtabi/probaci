@@ -146,6 +146,12 @@ homebrew_casks:
       # Cross-repo tap push needs a PAT (the default GITHUB_TOKEN is scoped to
       # this repo). Set the TAP_GITHUB_TOKEN secret before releasing.
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+      # Write deploy key on simtabi/homebrew-tap (secret HOMEBREW_TAP_DEPLOY_KEY): reaches that
+      # one repository only. Set, git pushes with it; unset, the URL is empty and the token
+      # path above runs. Measured with GoReleaser 2.18.3.
+      git:
+        url: '{{ if envOrDefault "HOMEBREW_TAP_DEPLOY_KEY" "" }}git@github.com:simtabi/homebrew-tap.git{{ end }}'
+        private_key: '{{ envOrDefault "HOMEBREW_TAP_DEPLOY_KEY" "" }}'
     commit_author:
       name: Imani Manyara
       email: imanimanyara@users.noreply.github.com
@@ -170,6 +176,12 @@ scoops:
       name: scoop-bucket
       branch: main
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+      # Write deploy key on simtabi/scoop-bucket (secret SCOOP_BUCKET_DEPLOY_KEY): reaches that
+      # one repository only. Set, git pushes with it; unset, the URL is empty and the token
+      # path above runs. Measured with GoReleaser 2.18.3.
+      git:
+        url: '{{ if envOrDefault "SCOOP_BUCKET_DEPLOY_KEY" "" }}git@github.com:simtabi/scoop-bucket.git{{ end }}'
+        private_key: '{{ envOrDefault "SCOOP_BUCKET_DEPLOY_KEY" "" }}'
     commit_author:
       name: Imani Manyara
       email: imanimanyara@users.noreply.github.com
