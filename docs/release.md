@@ -66,7 +66,8 @@ Pure Go, `CGO_ENABLED=0`.
 1. Make the repo public on GitHub.
 2. Create the `pypi`/`npm`-equivalent here: a GitHub Release flow via OIDC (no
    long-lived registry credentials).
-3. Add `TAP_GITHUB_TOKEN` (Homebrew tap) and any registry tokens as needed.
+3. Add the write deploy keys `HOMEBREW_TAP_DEPLOY_KEY` (on `simtabi/homebrew-tap`) and `SCOOP_BUCKET_DEPLOY_KEY` (on `simtabi/scoop-bucket`), each a repository secret that reaches its one repository and nothing else (`TAP_GITHUB_TOKEN` is only a fallback, and the
+   Winget pull request's token), plus any registry tokens as needed.
 4. Cut `v0.1.0`.
 
 The full org-wide gate is `/opensource/shipping-checklist.md` (local; not in any
