@@ -1,7 +1,12 @@
 # Release
 
-Releases are tag-driven and built by GoReleaser. The CI GoReleaser version is
-pinned (`~> v2.4`) so the config schema and tool stay in sync.
+Releases are tag-driven and built by GoReleaser, and binary releases are on
+hold. A `vX.Y.Z` tag records a version and publishes nothing; a binary release is
+built from a tag only when dispatched by hand with a confirmation (see
+[Cutting a release](#cutting-a-release)). Until binary releases resume, users
+build from source ([installation](installation.md#build-from-source)). The CI
+GoReleaser version is pinned (`~> v2.4`) so the config schema and tool stay in
+sync.
 
 ## Local deliverables (no publishing)
 
@@ -52,7 +57,18 @@ regenerated `digests.json`.
    git tag v0.1.0
    git push origin v0.1.0
    ```
-3. The `release` workflow runs GoReleaser, which builds the matrix, signs with
+   Pushing a tag publishes nothing: binary releases are on hold, and probaci is
+   built from source until the owner decides otherwise.
+3. Only when a binary release has been approved for this version, dispatch the
+   `release` workflow on the tag:
+   ```sh
+   gh workflow run release.yml --repo simtabi/probaci --ref vX.Y.Z -f confirm=release-go
+   ```
+   `vX.Y.Z` must be a tag that is already on GitHub. This publishes for real, so
+   run it only for a version the owner approved. The workflow's first step
+   refuses to run without `confirm=release-go`, or on anything but a `v[0-9]*`
+   tag, before anything is built.
+4. The `release` workflow runs GoReleaser, which builds the matrix, signs with
    cosign (keyless via OIDC), attaches an SBOM and SLSA provenance, and publishes
    the GitHub Release, container image, deb/rpm, and Homebrew/Scoop manifests.
 
@@ -68,7 +84,8 @@ Pure Go, `CGO_ENABLED=0`.
    long-lived registry credentials).
 3. Add the write deploy keys `HOMEBREW_TAP_DEPLOY_KEY` (on `simtabi/homebrew-tap`) and `SCOOP_BUCKET_DEPLOY_KEY` (on `simtabi/scoop-bucket`), each a repository secret that reaches its one repository and nothing else (`TAP_GITHUB_TOKEN` is only a fallback, and the
    Winget pull request's token), plus any registry tokens as needed.
-4. Cut `v0.1.0`.
+4. Tag `v0.1.0`, then dispatch the release on it as in
+   [Cutting a release](#cutting-a-release).
 
 The full org-wide gate is `/opensource/shipping-checklist.md` (local; not in any
 repo). Run it before every release.

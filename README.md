@@ -38,25 +38,19 @@ probaci is built to catch the common causes automatically:
 
 ## Install
 
-Most users install the binary (you only need the source to change probaci):
+probaci is built from source: binary releases are on hold, so there is no
+download, install-script, package-manager or `go install` channel to use. You need
+Go (the version `go.mod` names), `git` and `make`.
 
 ```sh
-# macOS / Linux — Homebrew
-brew install simtabi/tap/probaci
-
-# macOS / Linux — install script (downloads + checksum-verifies the right binary)
-curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.sh | bash
-
-# Windows — Scoop, or the install script
-scoop bucket add simtabi https://github.com/simtabi/scoop-bucket; scoop install probaci
-irm https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.ps1 | iex
-
-# Go toolchain
-go install github.com/simtabi/probaci/cmd/probaci@latest
+git clone https://github.com/simtabi/probaci ~/src/probaci
+make -C ~/src/probaci build        # -> bin/probaci
+~/src/probaci/bin/probaci install   # copies itself onto PATH (~/.local/bin)
+probaci doctor
 ```
 
-deb/rpm packages and a container image are published per release. Full details,
-PATH guidance, and building from source: [docs/installation.md](docs/installation.md).
+Pinning a version, updating, Windows, and PATH guidance are in
+[docs/installation.md](docs/installation.md).
 
 ## Quick start guide and usage
 
