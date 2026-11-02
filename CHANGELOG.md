@@ -11,6 +11,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The release workflow no longer starts on a tag push. Binary releases are on hold, and a release
   runs only when dispatched by hand on a `v[0-9]*` tag with `-f confirm=release-go`; a test fails
   if an automatic trigger returns.
+- The README and installation guide build probaci from source only: no download, install-script,
+  package-manager or `go install` path is offered while binary releases are on hold.
 
 ## [0.1.0] - 2026-06-18
 

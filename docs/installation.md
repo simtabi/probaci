@@ -1,46 +1,63 @@
 # Installation
 
-probaci ships as a single static binary. Most users should install the binary —
-you only need the source to make changes. The only hard runtime dependencies are
-a container runtime (Docker, rootless Docker, or Podman) and your VCS.
+probaci is a single static binary, built from source. Binary releases are on
+hold until the maintainer decides otherwise, so this page offers no download,
+install-script, package-manager or `go install` path. The only hard runtime
+dependencies are a container runtime (Docker, rootless Docker, or Podman) and
+your VCS.
 
-## Quick install (recommended)
+## Build from source
 
-**macOS / Linux — Homebrew:**
-
-```sh
-brew install simtabi/tap/probaci
-```
-
-**Windows — Scoop:**
-
-```powershell
-scoop bucket add simtabi https://github.com/simtabi/scoop-bucket
-scoop install probaci
-```
-
-**macOS / Linux — install script** (downloads the right binary for your OS/arch,
-verifies its checksum, installs it on your PATH):
+You need Go (the version `go.mod` names), `git`, and `make` (or
+[go-task](https://taskfile.dev)).
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.sh | bash
+git clone https://github.com/simtabi/probaci ~/src/probaci
+make -C ~/src/probaci build       # -> bin/probaci
+~/src/probaci/bin/probaci install  # copies itself to ~/.local/bin (Windows: %LOCALAPPDATA%\Programs\probaci)
+probaci doctor
 ```
 
-**Windows — install script:**
+`probaci install --system` installs machine-wide (`/usr/local/bin`,
+`%ProgramFiles%`, needs elevation), `--dir DIR` picks an explicit directory, and
+`probaci uninstall [--purge]` removes it again. Copying `bin/probaci` onto your
+`PATH` by hand works just as well.
 
-```powershell
-irm https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.ps1 | iex
-```
+Without `make`, the dependency-free primitive is
+`go -C ~/src/probaci build -o bin/probaci ./cmd/probaci`. On Windows, run the same
+`git clone` and that `go build` (with `-o bin\probaci.exe`) from PowerShell, then
+run `bin\probaci.exe install`.
 
-The script installs to `/usr/local/bin` by default, requesting `sudo` only if
-that directory isn't writable (Windows: `%LOCALAPPDATA%\Programs\probaci`).
-Override the directory with `PROBACI_INSTALL_DIR`, and pin a version by passing
-it as an argument:
+### Pinning a version
+
+A version is a tag: check one out to build exactly that release (`git -C ~/src/probaci tag`
+lists them).
 
 ```sh
-PROBACI_INSTALL_DIR="$HOME/bin" \
-  curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.sh | bash -s v0.1.0
+git -C ~/src/probaci fetch --tags
+git -C ~/src/probaci checkout vX.Y.Z
+make -C ~/src/probaci build
 ```
+
+### Updating
+
+```sh
+git -C ~/src/probaci pull --ff-only
+make -C ~/src/probaci build
+~/src/probaci/bin/probaci install
+```
+
+`probaci version` reports the version the build was stamped with (`git describe`),
+so a build from a branch is still identifiable.
+
+### Binary releases
+
+No binary release has been published. The release tooling stays in the tree:
+the GoReleaser config, and `scripts/install.sh` / `scripts/install.ps1`, which
+download release archives. The release workflow would also publish Homebrew and
+Scoop manifests, deb/rpm packages and a `ghcr.io/simtabi/probaci` container image.
+None of those channels is offered while binary releases are on hold; see
+[release.md](release.md).
 
 ## Run it globally
 
@@ -48,7 +65,7 @@ Once the install directory is on your `PATH`, run `probaci` from anywhere — it
 auto-discovers the repository root by walking up from the current directory
 (ddev-style), so `probaci run` works from any subdirectory.
 
-If the installer warns that the directory isn't on your `PATH`, add it:
+If `probaci install` warns that the directory isn't on your `PATH`, add it:
 
 | Shell / OS | Add to PATH |
 |---|---|
@@ -58,34 +75,7 @@ If the installer warns that the directory isn't on your `PATH`, add it:
 | Windows (PowerShell) | `[Environment]::SetEnvironmentVariable('Path', "$dir;$env:Path", 'User')` |
 
 `/usr/local/bin` is already on `PATH` for most systems — prefer it for a
-machine-wide install (it may require `sudo` or `PROBACI_INSTALL_DIR=/usr/local/bin`
-with elevation).
-
-## go install (Go toolchain)
-
-```sh
-go install github.com/simtabi/probaci/cmd/probaci@latest
-```
-
-## Manual download
-
-Download the archive for your OS/arch from
-[GitHub Releases](https://github.com/simtabi/probaci/releases), verify it against
-`checksums.txt` (and the cosign signature), extract, and either place `probaci`
-on your `PATH` or let probaci place itself:
-
-```sh
-probaci install            # per-user (~/.local/bin, %LOCALAPPDATA%\Programs\probaci)
-probaci install --system   # machine-wide (/usr/local/bin, %ProgramFiles%) — needs elevation
-probaci install --dir DIR  # explicit directory
-probaci uninstall [--purge]
-```
-
-## Container image
-
-```sh
-docker run --rm -v "$PWD:/workspace" ghcr.io/simtabi/probaci:latest run
-```
+machine-wide install (`probaci install --system`, which needs elevation).
 
 ## Supported platforms and architectures
 
@@ -99,9 +89,9 @@ docker run --rm -v "$PWD:/workspace" ghcr.io/simtabi/probaci:latest run
 > Windows configurations, runtime availability varies — probaci's `--no-docker`
 > mode runs the non-container checks and skips the rest.
 
-## Build from source (contributors only)
+## Development builds
 
-You only need this to modify probaci. One task definition, three entrypoints:
+One task definition, three entrypoints:
 
 ```sh
 task build                               # go-task (Taskfile.yml)
