@@ -57,7 +57,10 @@ jobs:
       # user-named files (G304/G306) with conventional perms (G301/G302) by
       # design, and G104 duplicates errcheck. The high-severity taint rules
       # (G702/G703) stay on, with #nosec on the few benign sites.
-      - run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      # Pinned, not @latest: gosec v2.30.0 requires go >= 1.26 and fails to
+      # install on this job's Go 1.25 (GOTOOLCHAIN=local). v2.29.0 is the
+      # newest release whose go.mod accepts 1.25; bump with the go-version.
+      - run: go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
       - run: |
           "$(go env GOPATH)/bin/gosec" -exclude=G104,G204,G301,G302,G304,G306 ./...
 
