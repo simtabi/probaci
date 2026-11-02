@@ -6,9 +6,23 @@ name: release
 # GitHub Release (body from the tagged CHANGELOG section), and updates the
 # Homebrew/Scoop manifests. A build-provenance attestation is then signed for
 # every artifact via the checksums file.
+#
+# Go releases are git only until the owner says otherwise for this project, so
+# nothing here starts on a tag push: pushing a vX.Y.Z tag records a version and
+# publishes nothing. A release is dispatched by hand against the tag, with an
+# explicit confirmation, and refuses to run without both:
+#
+#   gh workflow run release.yml --repo simtabi/probaci --ref vX.Y.Z -f confirm=release-go
+#
+# It stays tag-driven: GoReleaser reads the version from the ref it is run
+# against, and the first step refuses a ref that is not a v[0-9]* tag.
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type release-go to publish binaries for the tag this run is dispatched on
+        required: true
+        type: string
 
 # A newer tag must never abort an in-flight publish.
 concurrency:
@@ -29,6 +43,19 @@ jobs:
       attestations: write   # write the build-provenance attestation
       packages: write       # push the container image
     steps:
+      - name: Refuse without confirmation or a release tag
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "${CONFIRM}" != "release-go" ]; then
+            echo "::error::confirm must be release-go; nothing was published"
+            exit 1
+          fi
+          case "${GITHUB_REF}" in
+            refs/tags/v[0-9]*) ;;
+            *) echo "::error::dispatch this on a vX.Y.Z tag (--ref vX.Y.Z), not ${GITHUB_REF}"; exit 1 ;;
+          esac
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
