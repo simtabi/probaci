@@ -1,14 +1,34 @@
 package secret
 
 import (
-	"strings"
+	"crypto/rand"
 	"testing"
+)
+
+// gen returns n characters drawn from alphabet with crypto/rand, so no test
+// value is written down and a secret scanner has nothing to match.
+func gen(t *testing.T, n int, alphabet string) string {
+	t.Helper()
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		t.Fatal(err)
+	}
+	for i := range b {
+		b[i] = alphabet[int(b[i])%len(alphabet)]
+	}
+	return string(b)
+}
+
+const (
+	lowerDigits = "abcdefghijklmnopqrstuvwxyz0123456789"
+	upperDigits = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 )
 
 func TestRedactLiterals(t *testing.T) {
 	r := New()
-	r.Add("supersecretvalue", "abc") // "abc" too short -> ignored
-	got := r.Redact("token=supersecretvalue rest")
+	secret := gen(t, 16, lowerDigits)
+	r.Add(secret, "abc") // "abc" too short -> ignored
+	got := r.Redact("token=" + secret + " rest")
 	if got != "token="+Mask+" rest" {
 		t.Fatalf("literal not redacted: %q", got)
 	}
@@ -21,10 +41,10 @@ func TestRedactTokenShapes(t *testing.T) {
 	// Token-shaped values are assembled at run time so the source carries no
 	// literal a secret scanner matches by prefix.
 	cases := []string{
-		"ghp_" + strings.Repeat("x", 36),
-		"glpat-" + strings.Repeat("x", 20),
-		"AKIA" + strings.Repeat("X", 16),
-		"Bearer abcdefghijklmnopqrstuvwxyz",
+		"ghp_" + gen(t, 36, lowerDigits),
+		"glpat-" + gen(t, 20, lowerDigits),
+		"AKIA" + gen(t, 16, upperDigits),
+		"Bearer " + gen(t, 26, lowerDigits),
 	}
 	r := New()
 	for _, c := range cases {
