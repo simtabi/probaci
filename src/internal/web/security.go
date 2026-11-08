@@ -142,6 +142,9 @@ func (s *Server) auth(next http.Handler) http.Handler {
 				return
 			}
 			id, _ := s.sessions.create(s.now())
+			// #nosec G124 -- Secure is set whenever the request came over TLS (s.secure);
+			// the default loopback server is plain HTTP, where a Secure cookie would
+			// never be sent back. HttpOnly and SameSite=Strict are always set.
 			http.SetCookie(w, &http.Cookie{
 				Name: SessionCookie, Value: id, Path: "/",
 				HttpOnly: true, SameSite: http.SameSiteStrictMode, Secure: s.secure(r),
@@ -158,7 +161,7 @@ func (s *Server) auth(next http.Handler) http.Handler {
 				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
 			}
-			http.Redirect(w, r, target, http.StatusSeeOther)
+			http.Redirect(w, r, target, http.StatusSeeOther) // #nosec G710 -- isLocalURL above admits only a same-origin path
 			return
 		}
 		c, err := r.Cookie(SessionCookie)
