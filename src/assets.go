@@ -36,6 +36,8 @@ var docTopics = map[string]string{
 	"commands":      "docs/tools/probaci.md",
 	"cli":           "docs/tools/probaci.md",
 	"tools":         "docs/tools/probaci.md",
+	"serve":         "docs/tools/serve.md",
+	"ui":            "docs/tools/serve.md",
 }
 
 // Doc returns the embedded markdown for a topic (default "overview"), and
@@ -57,5 +59,5 @@ func Doc(topic string) (string, bool) {
 
 // DocTopics returns the canonical topic names (deduped), for help/listing.
 func DocTopics() []string {
-	return []string{"overview", "installation", "configuration", "architecture", "security", "release", "commands"}
+	return []string{"overview", "installation", "configuration", "architecture", "security", "release", "commands", "serve"}
 }

@@ -1,0 +1,65 @@
+{{define "content"}}{{with .Data}}
+{{template "page_header" "Overview"}}
+{{if .Err}}<div class="alert alert-danger" role="alert">{{icon "alert-triangle"}} Cannot read the configuration: {{.Err}}</div>{{end}}
+<div class="row row-cards">
+  <div class="col-lg-7">
+    <section class="card mb-3" aria-labelledby="repos-title">
+      <div class="card-header"><h2 class="card-title" id="repos-title">Repositories</h2></div>
+      {{if .Overview.Repos}}
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead><tr><th scope="col">Repository</th><th scope="col">Languages</th></tr></thead>
+          <tbody>
+          {{range .Overview.Repos}}
+            <tr><td class="text-break"><code>{{.Path}}</code></td><td class="text-nowrap">{{if .Languages}}{{join .Languages ", "}}{{else}}<span class="text-secondary">none detected</span>{{end}}</td></tr>
+          {{end}}
+          </tbody>
+        </table>
+      </div>
+      {{else}}<div class="card-body text-secondary">No repository to run on.</div>{{end}}
+    </section>
+    <section class="card mb-3" aria-labelledby="recent-title">
+      <div class="card-header"><h2 class="card-title" id="recent-title">Recent runs</h2><div class="card-actions"><a href="/runs" class="btn btn-sm">{{icon "history"}}All runs</a></div></div>
+      {{if .Recent}}
+      <div class="list-group list-group-flush">
+        {{range .Recent}}
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="/runs/{{.ID}}">
+          <span><code>{{.ID}}</code> <span class="text-secondary small ms-2">{{when .Started}}</span></span>
+          {{template "run_badge" .Status}}
+        </a>
+        {{end}}
+      </div>
+      {{else}}<div class="card-body text-secondary">No runs yet.</div>{{end}}
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="card mb-3" aria-labelledby="run-title">
+      <div class="card-header"><h2 class="card-title" id="run-title">Run the pipeline</h2></div>
+      <div class="card-body">
+        <p class="text-secondary small">Containers: {{orDash .Overview.Docker}}</p>
+        {{if $.ReadOnly}}
+        <p class="text-secondary mb-0">{{icon "lock"}} This server was started with <code>--read-only</code>, so it cannot start a run. Run <code>probaci run</code> in a terminal instead.</p>
+        {{else if .Overview.Stages}}
+        <form method="post" action="/runs">
+          <input type="hidden" name="csrf" value="{{$.CSRF}}">
+          <fieldset class="mb-3">
+            <legend class="form-label">Stages</legend>
+            {{range .Overview.Stages}}
+            <label class="form-check"><input class="form-check-input" type="checkbox" name="stage" value="{{.}}" checked><span class="form-check-label"><code>{{.}}</code></span></label>
+            {{end}}
+          </fieldset>
+          {{if gt .MaxJobs 1}}
+          <div class="mb-3">
+            <label class="form-label" for="jobs">Repositories at once</label>
+            <input class="form-control" type="number" id="jobs" name="jobs" min="1" max="{{.MaxJobs}}" value="1">
+          </div>
+          {{end}}
+          <button type="submit" class="btn btn-primary w-100"{{if $.Running}} disabled{{end}}>{{icon "player-play"}}Start run</button>
+          {{if $.Running}}<p class="form-hint mt-2">A run is in progress. <a href="/runs/{{$.Running.ID}}">Open it</a>.</p>{{end}}
+        </form>
+        {{else}}<p class="text-secondary mb-0">No stage is enabled in the configuration.</p>{{end}}
+      </div>
+    </section>
+  </div>
+</div>
+{{end}}{{end}}

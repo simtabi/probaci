@@ -71,6 +71,7 @@ archives:
       - LICENSE
       - README.md
       - CHANGELOG.md
+      - third-party-notices.md
 
 # Native Linux packages (nfpm operates on the Linux builds only).
 nfpms:

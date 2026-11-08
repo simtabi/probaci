@@ -1,0 +1,12 @@
+{{define "content"}}
+{{template "page_header" "Third-party licenses"}}
+<p class="text-secondary">This page's styles, scripts and icons are third-party software embedded in the binary. Each is MIT-licensed; its full notice follows.</p>
+{{range $i, $l := .Data}}
+<section class="card mb-3" aria-labelledby="lic-{{$i}}">
+  <div class="card-header"><h2 class="card-title" id="lic-{{$i}}">{{.Package}}</h2></div>
+  <div class="card-body">
+    <pre class="license-text" tabindex="0" aria-label="License text of {{.Package}}">{{.Text}}</pre>
+  </div>
+</section>
+{{end}}
+{{end}}

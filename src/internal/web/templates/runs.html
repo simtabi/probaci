@@ -1,0 +1,22 @@
+{{define "content"}}
+{{template "page_header" "Runs"}}
+<section class="card" aria-label="Runs">
+  {{if .Data}}
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead><tr><th scope="col">Run</th><th scope="col">Started</th><th scope="col">Stages</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+      {{range .Data}}
+        <tr>
+          <td><a href="/runs/{{.ID}}"><code>{{.ID}}</code></a></td>
+          <td>{{when .Started}}</td>
+          <td class="text-secondary">{{if .Request.Stages}}{{join .Request.Stages ", "}}{{else}}all{{end}}</td>
+          <td>{{template "run_badge" .Status}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}<div class="card-body text-secondary">No runs yet. Start one from the <a href="/">overview</a>.</div>{{end}}
+</section>
+{{end}}

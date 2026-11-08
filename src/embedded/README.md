@@ -71,6 +71,7 @@ probaci init               # write a probaci.json for this repo
 probaci run                # run the pipeline on the current directory
 probaci run ./api ./web    # run on several repositories
 probaci tui                # interactive dashboard
+probaci serve              # web UI in the browser: start runs, watch them
 ```
 
 Positional arguments are **repository paths**; stage selection is via flags:
@@ -138,6 +139,7 @@ all output and logs, and releases are signed with provenance + SBOM. Details in
 | [Security](docs/security.md) | hardening defaults, the socket-mount caveat |
 | [Release](docs/release.md) | tag-driven releases, signing, channels |
 | [probaci tool](docs/tools/probaci.md) | command reference |
+| [`serve`](docs/tools/serve.md) | the web UI: start runs, watch them, read earlier ones |
 
 ## License
 
