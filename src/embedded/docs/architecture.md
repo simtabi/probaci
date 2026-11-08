@@ -33,6 +33,11 @@ runs inside a pinned container.
 
 ## Packages
 
+The Go module lives in `src/` (module path `github.com/simtabi/probaci/src`);
+the paths below are relative to it. The module root package embeds a copy of
+`README.md` and `docs/` from `src/embedded/` for `probaci docs`, refreshed by
+`make sync-docs`.
+
 | Package | Responsibility |
 |---------|----------------|
 | `internal/cli` | Cobra commands; thin — parse flags, drive the engine |

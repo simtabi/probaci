@@ -6,6 +6,6 @@
 
 ## Checklist
 
-- [ ] `go build ./...`, `go vet ./...`, and `go test ./...` pass
+- [ ] `go -C src build ./...`, `go -C src vet ./...`, and `go -C src test ./...` pass
 - [ ] Added/updated tests for new logic
 - [ ] Updated docs / CHANGELOG where relevant

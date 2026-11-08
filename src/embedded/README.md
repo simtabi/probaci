@@ -40,12 +40,12 @@ probaci is built to catch the common causes automatically:
 
 probaci is built from source: binary releases are on hold, so there is no
 download, install-script, package-manager or `go install` channel to use. You need
-Go (the version `go.mod` names), `git` and `make`.
+Go (the version `src/go.mod` names), `git` and `make`.
 
 ```sh
 git clone https://github.com/simtabi/probaci ~/src/probaci
-make -C ~/src/probaci build        # -> bin/probaci
-~/src/probaci/bin/probaci install   # copies itself onto PATH (~/.local/bin)
+make -C ~/src/probaci build             # -> build/<os>/probaci (macos, linux or windows)
+~/src/probaci/build/*/probaci install    # copies itself onto PATH (~/.local/bin)
 probaci doctor
 ```
 

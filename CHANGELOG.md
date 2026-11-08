@@ -13,6 +13,31 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   if an automatic trigger returns.
 - The README and installation guide build probaci from source only: no download, install-script,
   package-manager or `go install` path is offered while binary releases are on hold.
+- The Go module moved into `src/`, and its path is now `github.com/simtabi/probaci/src`. Importers
+  of `pkg/probaci` use `github.com/simtabi/probaci/src/pkg/probaci`. A release tags `src/vX.Y.Z`
+  beside `vX.Y.Z` on the same commit, since that is the tag Go resolves the module through.
+- `make build` writes `build/<os>/probaci` (macOS as `macos`) instead of `bin/probaci`.
+  `make cross` and `make dist` write one folder per OS under `build/`, with
+  `build/checksums.txt` over `{os}/{file}` paths and archives only in `build/archives/`;
+  `build/dist/` is gone, and GoReleaser's scratch output moved to `.cache/goreleaser/`.
+- The Makefile is the one task definition, and every Taskfile task forwards to it.
+- `probaci docs` reads a copy of `README.md` and `docs/` kept in `src/embedded/` (`make sync-docs`),
+  because the module in `src/` cannot embed files above it; a test fails when the copy drifts.
+- The CI gitleaks scan runs a gitleaks v8.30.1 binary instead of the `zricethezav/gitleaks` image.
+
+### Added
+
+- Tests that fail when `build/` holds anything but OS folders, inputs and checksums, when a
+  container image or docker step returns, and when the docs offer `go install`. The release
+  trigger test now also requires the refusal to be the workflow's first step.
+- A CI `snapshot` job that runs `make cross` on every pull request and uploads the binaries.
+
+### Removed
+
+- The container image. The `Dockerfile`, the GoReleaser `dockers_v2` block
+  (`ghcr.io/simtabi/probaci`, linux/amd64 and linux/arm64), the release workflow's QEMU, buildx
+  and ghcr.io login steps and its `packages: write` permission, and Dependabot's docker ecosystem
+  are gone. No image was ever published, so nothing on ghcr.io is affected.
 
 ## [0.1.0] - 2026-06-18
 
