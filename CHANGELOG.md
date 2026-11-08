@@ -8,6 +8,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Building probaci needs Go 1.26, and CI runs on it. Go 1.25 has ten standard-library
+  vulnerabilities fixed only in 1.26, which the web UI's `net/http` server reaches; `golang.org/x/net`
+  moves to v0.60.0 for the same reason, and gosec to v2.30.0.
 - The release workflow no longer starts on a tag push. Binary releases are on hold, and a release
   runs only when dispatched by hand on a `v[0-9]*` tag with `-f confirm=release-go`; a test fails
   if an automatic trigger returns.
