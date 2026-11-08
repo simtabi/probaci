@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/simtabi/probaci/internal/platform"
-	"github.com/simtabi/probaci/internal/report"
-	"github.com/simtabi/probaci/internal/result"
-	"github.com/simtabi/probaci/internal/stage"
-	"github.com/simtabi/probaci/internal/ui"
-	"github.com/simtabi/probaci/pkg/probaci"
+	"github.com/simtabi/probaci/src/internal/platform"
+	"github.com/simtabi/probaci/src/internal/report"
+	"github.com/simtabi/probaci/src/internal/result"
+	"github.com/simtabi/probaci/src/internal/stage"
+	"github.com/simtabi/probaci/src/internal/ui"
+	"github.com/simtabi/probaci/src/pkg/probaci"
 	"github.com/spf13/cobra"
 )
 

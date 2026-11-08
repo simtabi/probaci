@@ -3,7 +3,7 @@ package platform
 import (
 	"context"
 
-	"github.com/simtabi/probaci/internal/result"
+	"github.com/simtabi/probaci/src/internal/result"
 )
 
 // --- GitHub Actions (Tier 1) ----------------------------------------------

@@ -6,11 +6,12 @@ version: "3"
 vars:
   BIN: bin/probaci
   PKG: ./cmd/probaci
-  MODULE: github.com/simtabi/probaci
+  # The module lives in src/; every go command below names it with -C src.
+  MODULE: github.com/simtabi/probaci/src
   # Version stamp for non-GoReleaser builds (falls back to "dev" outside git).
   VERSION:
     sh: git describe --tags --always --dirty 2>/dev/null || echo dev
-  LDFLAGS: -s -w -X github.com/simtabi/probaci/internal/version.Version={{.VERSION}}
+  LDFLAGS: -s -w -X github.com/simtabi/probaci/src/internal/version.Version={{.VERSION}}
 
 tasks:
   default:
@@ -19,53 +20,53 @@ tasks:
   build:
     desc: Build the probaci binary into ./bin (version-stamped)
     cmds:
-      - go build -ldflags "{{.LDFLAGS}}" -o {{.BIN}} {{.PKG}}
+      - go -C src build -ldflags "{{.LDFLAGS}}" -o ../{{.BIN}} {{.PKG}}
 
   install:
     desc: Install probaci into GOBIN/PATH via the Go toolchain
     cmds:
-      - go install {{.PKG}}
+      - go -C src install {{.PKG}}
 
   run:
     desc: Run probaci from source (pass args after --)
     cmds:
-      - go run {{.PKG}} {{.CLI_ARGS}}
+      - go -C src run {{.PKG}} {{.CLI_ARGS}}
 
   test:
     desc: Run the test suite with the race detector
     cmds:
-      - go test -race ./...
+      - go -C src test -race ./...
 
   cover:
     desc: Run tests with coverage
     cmds:
-      - go test -coverprofile=coverage.txt ./...
-      - go tool cover -func=coverage.txt | tail -1
+      - go -C src test -coverprofile=../coverage.txt ./...
+      - go -C src tool cover -func=../coverage.txt | tail -1
 
   vet:
     desc: Run go vet
     cmds:
-      - go vet ./...
+      - go -C src vet ./...
 
   lint:
     desc: Run golangci-lint (must be installed)
     cmds:
-      - golangci-lint run
+      - cd src && golangci-lint run ./...
 
   fmt:
     desc: Format the codebase
     cmds:
-      - gofmt -w .
+      - gofmt -w src
 
   tidy:
     desc: Tidy go.mod/go.sum
     cmds:
-      - go mod tidy
+      - go -C src mod tidy
 
   release-check:
     desc: Validate the GoReleaser configuration
     cmds:
-      - goreleaser check
+      - goreleaser check --config src/.goreleaser.yaml
 
   bundle:
     desc: Build local release deliverables (archives + checksums) into ./dist
@@ -73,7 +74,7 @@ tasks:
       # Skip release-only steps (publish/sign/docker/sbom) so this runs offline
       # with no OIDC/cosign/registry/syft needed; produces dist/*.tar.gz, *.zip,
       # and checksums.txt.
-      - goreleaser release --snapshot --clean --skip=publish,sign,docker,sbom
+      - goreleaser release --config src/.goreleaser.yaml --snapshot --clean --skip=publish,sign,docker,sbom
 
   snapshot:
     desc: Alias for `bundle` (local multi-arch deliverables, no publish)

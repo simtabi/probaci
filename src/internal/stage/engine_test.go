@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/simtabi/probaci/internal/config"
-	"github.com/simtabi/probaci/internal/result"
-	"github.com/simtabi/probaci/internal/tool"
+	"github.com/simtabi/probaci/src/internal/config"
+	"github.com/simtabi/probaci/src/internal/result"
+	"github.com/simtabi/probaci/src/internal/tool"
 )
 
 // TestPerRepoConfigSelectsStages verifies that a per-repo resolver controls

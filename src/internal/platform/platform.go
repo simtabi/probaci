@@ -7,9 +7,9 @@ package platform
 import (
 	"context"
 
-	"github.com/simtabi/probaci/internal/docker"
-	"github.com/simtabi/probaci/internal/result"
-	"github.com/simtabi/probaci/internal/tool"
+	"github.com/simtabi/probaci/src/internal/docker"
+	"github.com/simtabi/probaci/src/internal/result"
+	"github.com/simtabi/probaci/src/internal/tool"
 )
 
 // Tier expresses how much an adapter can honestly do.

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/simtabi/probaci/internal/result"
-	"github.com/simtabi/probaci/internal/ui"
+	"github.com/simtabi/probaci/src/internal/result"
+	"github.com/simtabi/probaci/src/internal/ui"
 )
 
 // JSON renders the aggregate as indented JSON for machine consumption.

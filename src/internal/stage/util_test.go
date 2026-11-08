@@ -3,7 +3,7 @@ package stage
 import (
 	"testing"
 
-	"github.com/simtabi/probaci/internal/result"
+	"github.com/simtabi/probaci/src/internal/result"
 )
 
 func TestWorsen(t *testing.T) {

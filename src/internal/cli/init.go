@@ -8,8 +8,8 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/mattn/go-isatty"
-	"github.com/simtabi/probaci/internal/config"
-	"github.com/simtabi/probaci/internal/detect"
+	"github.com/simtabi/probaci/src/internal/config"
+	"github.com/simtabi/probaci/src/internal/detect"
 	"github.com/spf13/cobra"
 )
 

@@ -18,17 +18,19 @@
 # (targets.txt and all outputs) are rewritten from scratch, so nothing stale
 # from a removed/renamed target or a previous run ever survives.
 #
-#   VERSION=v1.2.3 ./scripts/build-all.sh          # normal
-#   ARCHIVES=0 ./scripts/build-all.sh              # binaries only, skip archives
-#   TARGETS=path/to/list ./scripts/build-all.sh    # use an external target list
+#   VERSION=v1.2.3 ./src/scripts/build-all.sh          # normal
+#   ARCHIVES=0 ./src/scripts/build-all.sh              # binaries only, skip archives
+#   TARGETS=path/to/list ./src/scripts/build-all.sh    # use an external target list
 #
 # Portable to bash 3.2 (the macOS system bash): no mapfile / wait -n / assoc arrays.
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+# The script lives in src/scripts/; build/ and the docs it bundles are at the
+# repository root, and the module it compiles is src/.
+cd "$(dirname "$0")/../.."
 
 BINARY="probaci"
-PKG="github.com/simtabi/probaci/internal/version"
+PKG="github.com/simtabi/probaci/src/internal/version"
 BUILD_DIR="build"
 OUT="${BUILD_DIR}/dist"
 ARCHIVE_DIR="${OUT}/archives"
@@ -134,7 +136,7 @@ while IFS=$' \t\r' read -r goos goarch goarm || [ -n "${goos:-}" ]; do
   printf '  -> %-32s' "$name"
 
   GOOS="$goos" GOARCH="$goarch" GOARM="${goarm:-}" CGO_ENABLED=0 \
-    go build -trimpath -ldflags "$LDFLAGS" -o "${OUT}/${name}" ./cmd/probaci
+    go -C src build -trimpath -ldflags "$LDFLAGS" -o "${PWD}/${OUT}/${name}" ./cmd/probaci
   echo "ok"
 
   make_archive "$name" "$goos"

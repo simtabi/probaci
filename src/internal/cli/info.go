@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/glamour"
-	"github.com/simtabi/probaci"
-	"github.com/simtabi/probaci/internal/paths"
-	"github.com/simtabi/probaci/internal/platform"
-	"github.com/simtabi/probaci/internal/tool"
-	"github.com/simtabi/probaci/internal/ui"
-	"github.com/simtabi/probaci/internal/vcs"
-	"github.com/simtabi/probaci/internal/version"
+	probaci "github.com/simtabi/probaci/src"
+	"github.com/simtabi/probaci/src/internal/paths"
+	"github.com/simtabi/probaci/src/internal/platform"
+	"github.com/simtabi/probaci/src/internal/tool"
+	"github.com/simtabi/probaci/src/internal/ui"
+	"github.com/simtabi/probaci/src/internal/vcs"
+	"github.com/simtabi/probaci/src/internal/version"
 	"github.com/spf13/cobra"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/simtabi/probaci/internal/config"
+	"github.com/simtabi/probaci/src/internal/config"
 )
 
 func TestCheckImageStrictBlocksUnpinned(t *testing.T) {

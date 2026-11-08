@@ -1,6 +1,12 @@
 // Package probaci (module root) embeds the documentation so `probaci docs` can
 // render it in-terminal even from an installed binary far from the repo. The
 // library API lives in pkg/probaci; this root package only ships assets.
+//
+// The module lives in src/, and //go:embed cannot reach above the package that
+// embeds, so README.md and docs/ (which stay at the repository root, where
+// GitHub and the docs site read them) are mirrored into src/embedded/ by
+// `make sync-docs`. TestEmbeddedDocsMatchTheRepository fails when the mirror
+// drifts from the originals.
 package probaci
 
 import (
@@ -8,10 +14,14 @@ import (
 	"io/fs"
 )
 
-//go:embed README.md docs/*.md docs/tools/*.md
+//go:embed embedded/README.md embedded/docs/*.md embedded/docs/tools/*.md
 var docsFS embed.FS
 
-// docTopics maps a user-facing topic name (and aliases) to its embedded file.
+// embedRoot is the directory, inside docsFS, that mirrors the repository root.
+const embedRoot = "embedded/"
+
+// docTopics maps a user-facing topic name (and aliases) to its file, by its
+// path from the repository root.
 var docTopics = map[string]string{
 	"overview":      "README.md",
 	"readme":        "README.md",
@@ -38,7 +48,7 @@ func Doc(topic string) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	data, err := fs.ReadFile(docsFS, path)
+	data, err := fs.ReadFile(docsFS, embedRoot+path)
 	if err != nil {
 		return "", false
 	}

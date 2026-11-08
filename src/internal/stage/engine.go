@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/simtabi/probaci/internal/config"
-	"github.com/simtabi/probaci/internal/detect"
-	"github.com/simtabi/probaci/internal/docker"
-	"github.com/simtabi/probaci/internal/platform"
-	"github.com/simtabi/probaci/internal/result"
-	"github.com/simtabi/probaci/internal/tool"
-	"github.com/simtabi/probaci/internal/vcs"
+	"github.com/simtabi/probaci/src/internal/config"
+	"github.com/simtabi/probaci/src/internal/detect"
+	"github.com/simtabi/probaci/src/internal/docker"
+	"github.com/simtabi/probaci/src/internal/platform"
+	"github.com/simtabi/probaci/src/internal/result"
+	"github.com/simtabi/probaci/src/internal/tool"
+	"github.com/simtabi/probaci/src/internal/vcs"
 )
 
 // Event is emitted as the pipeline progresses.

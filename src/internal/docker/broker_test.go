@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/simtabi/probaci/internal/config"
+	"github.com/simtabi/probaci/src/internal/config"
 )
 
 // TestBuildArgsHardening asserts the least-privilege defaults are always set and

@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/simtabi/probaci/internal/detect"
-	"github.com/simtabi/probaci/internal/tool"
+	"github.com/simtabi/probaci/src/internal/detect"
+	"github.com/simtabi/probaci/src/internal/tool"
 )
 
 // TestDetectToolsResolveInRegistry guards against drift: every lint/audit tool

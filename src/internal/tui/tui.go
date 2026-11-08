@@ -12,9 +12,9 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/simtabi/probaci/internal/result"
-	"github.com/simtabi/probaci/internal/stage"
-	"github.com/simtabi/probaci/internal/ui"
+	"github.com/simtabi/probaci/src/internal/result"
+	"github.com/simtabi/probaci/src/internal/stage"
+	"github.com/simtabi/probaci/src/internal/ui"
 )
 
 // Run launches the dashboard for the given engine and options.

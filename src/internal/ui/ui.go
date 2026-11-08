@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/simtabi/probaci/internal/result"
+	"github.com/simtabi/probaci/src/internal/result"
 )
 
 // Theme holds resolved capability flags and styles.

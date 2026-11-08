@@ -3,7 +3,7 @@
   probaci installer for Windows.
 
 .EXAMPLE
-  irm https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.ps1 | iex
+  irm https://raw.githubusercontent.com/simtabi/probaci/main/src/scripts/install.ps1 | iex
 
 .EXAMPLE
   # Pin a version / custom dir (env vars are prefixed with the uppercased binary name)

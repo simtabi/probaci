@@ -1,4 +1,4 @@
-module github.com/simtabi/probaci
+module github.com/simtabi/probaci/src
 
 go 1.25.0
 

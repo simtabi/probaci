@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/mattn/go-isatty"
-	"github.com/simtabi/probaci/internal/ui"
-	"github.com/simtabi/probaci/internal/version"
-	"github.com/simtabi/probaci/pkg/probaci"
+	"github.com/simtabi/probaci/src/internal/ui"
+	"github.com/simtabi/probaci/src/internal/version"
+	"github.com/simtabi/probaci/src/pkg/probaci"
 	"github.com/spf13/cobra"
 )
 

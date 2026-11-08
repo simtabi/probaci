@@ -51,9 +51,12 @@ jobs:
         with:
           go-version: "1.25"
           check-latest: true
-      - run: go build ./...
-      - run: go vet ./...
-      - run: go test -race -coverprofile=coverage.txt ./...
+          cache-dependency-path: src/go.sum
+      # The module lives in src/: a bare `go test ./...` at the root finds no
+      # packages and passes, so every command names it.
+      - run: go -C src build ./...
+      - run: go -C src vet ./...
+      - run: go -C src test -race -coverprofile=../coverage.txt ./...
 
   lint:
     runs-on: ubuntu-latest
@@ -62,9 +65,11 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "1.25"
+          cache-dependency-path: src/go.sum
       - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: latest
+          working-directory: src
 
   govulncheck:
     runs-on: ubuntu-latest
@@ -73,10 +78,11 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "1.25"
+          cache-dependency-path: src/go.sum
       # Pinned: govulncheck @latest (v1.4.0) segfaults under the go1.25 toolchain.
       - run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
       - run: |
-          "$(go env GOPATH)/bin/govulncheck" ./...
+          cd src && "$(go env GOPATH)/bin/govulncheck" ./...
 
   gosec:
     runs-on: ubuntu-latest
@@ -85,6 +91,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "1.25"
+          cache-dependency-path: src/go.sum
       # Build gosec with the runner's Go — the gosec docker action bundles an
       # older Go that cannot load a `go 1.24` module.
       # probaci is a CI orchestrator: it runs subprocesses (G204) and reads/writes
@@ -96,7 +103,7 @@ jobs:
       # newest release whose go.mod accepts 1.25; bump with the go-version.
       - run: go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
       - run: |
-          "$(go env GOPATH)/bin/gosec" -exclude=G104,G204,G301,G302,G304,G306 ./...
+          cd src && "$(go env GOPATH)/bin/gosec" -exclude=G104,G204,G301,G302,G304,G306 ./...
 
   gitleaks:
     runs-on: ubuntu-latest
@@ -118,4 +125,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "1.25"
-      - run: go run ./cmd/probaci run --ci --only detect,workflow-lint,versions,secrets
+          cache-dependency-path: src/go.sum
+      # go -C src starts probaci inside src/; it walks up to the git root and
+      # proves the whole repository, as it did from the root.
+      - run: go -C src run ./cmd/probaci run --ci --only detect,workflow-lint,versions,secrets

@@ -2,10 +2,10 @@
 #
 # probaci installer for macOS and Linux.
 #
-#   curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/scripts/install.sh | bash -s v0.1.0
+#   curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/src/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/simtabi/probaci/main/src/scripts/install.sh | bash -s v0.1.0
 #
-# Windows users: use scripts/install.ps1 (irm ... | iex) or download the bare
+# Windows users: use src/scripts/install.ps1 (irm ... | iex) or download the bare
 # probaci_windows_<arch>.exe from the GitHub releases page.
 #
 set -euo pipefail

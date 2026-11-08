@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/simtabi/probaci/internal/config"
+	"github.com/simtabi/probaci/src/internal/config"
 )
 
 // Broker executes tools in containers via a chosen backend binary.

@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/simtabi/probaci/internal/result"
+	"github.com/simtabi/probaci/src/internal/result"
 )
 
 // worsen returns the more severe of two statuses, so a folded result reflects

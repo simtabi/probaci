@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/simtabi/probaci/internal/result"
-	"github.com/simtabi/probaci/internal/ui"
+	"github.com/simtabi/probaci/src/internal/result"
+	"github.com/simtabi/probaci/src/internal/ui"
 )
 
 func sampleAgg() result.Aggregate {

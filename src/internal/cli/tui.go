@@ -1,9 +1,9 @@
 package cli
 
 import (
-	"github.com/simtabi/probaci/internal/platform"
-	"github.com/simtabi/probaci/internal/stage"
-	"github.com/simtabi/probaci/internal/tui"
+	"github.com/simtabi/probaci/src/internal/platform"
+	"github.com/simtabi/probaci/src/internal/stage"
+	"github.com/simtabi/probaci/src/internal/tui"
 	"github.com/spf13/cobra"
 )
 

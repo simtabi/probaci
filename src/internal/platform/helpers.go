@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/simtabi/probaci/internal/docker"
-	"github.com/simtabi/probaci/internal/result"
+	"github.com/simtabi/probaci/src/internal/docker"
+	"github.com/simtabi/probaci/src/internal/result"
 )
 
 // fileExists reports whether repo/rel exists.

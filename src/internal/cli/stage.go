@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/simtabi/probaci/internal/platform"
-	"github.com/simtabi/probaci/internal/report"
-	"github.com/simtabi/probaci/internal/stage"
+	"github.com/simtabi/probaci/src/internal/platform"
+	"github.com/simtabi/probaci/src/internal/report"
+	"github.com/simtabi/probaci/src/internal/stage"
 	"github.com/spf13/cobra"
 )
 

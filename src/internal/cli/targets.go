@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/simtabi/probaci/internal/config"
-	"github.com/simtabi/probaci/internal/discover"
+	"github.com/simtabi/probaci/src/internal/config"
+	"github.com/simtabi/probaci/src/internal/discover"
 )
 
 // resolveTargets turns positional path args, --repos, -C, and workspace

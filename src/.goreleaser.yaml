@@ -1,3 +1,7 @@
+# Run from the repository root: goreleaser ... --config src/.goreleaser.yaml.
+# The module lives in src/ (builds[].dir), and archive files (LICENSE, README)
+# are read from the root, which a config run from inside src/ cannot reach.
+#
 # GoReleaser configuration — cross-platform/arch builds, checksums, cosign
 # signing, SLSA provenance, and an SBOM per release.
 version: 2
@@ -10,19 +14,20 @@ dist: build/dist
 
 before:
   hooks:
-    - go mod tidy
+    - go -C src mod tidy
 
 builds:
   - id: probaci
+    dir: src
     main: ./cmd/probaci
     binary: probaci
     env:
       - CGO_ENABLED=0
     ldflags:
       - -s -w
-      - -X github.com/simtabi/probaci/internal/version.Version={{.Version}}
-      - -X github.com/simtabi/probaci/internal/version.Commit={{.ShortCommit}}
-      - -X github.com/simtabi/probaci/internal/version.Date={{.Date}}
+      - -X github.com/simtabi/probaci/src/internal/version.Version={{.Version}}
+      - -X github.com/simtabi/probaci/src/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/simtabi/probaci/src/internal/version.Date={{.Date}}
     goos: [linux, darwin, windows]
     goarch: ["amd64", "arm64", "arm", "386"]
     goarm: ["6", "7"]

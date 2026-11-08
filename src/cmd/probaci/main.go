@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/simtabi/probaci/internal/cli"
+	"github.com/simtabi/probaci/src/internal/cli"
 )
 
 func main() {

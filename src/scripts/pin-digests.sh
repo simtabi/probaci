@@ -5,7 +5,7 @@
 # Regenerate the shipped pins (run in a network-connected env with a container
 # runtime + python3, and a built probaci on PATH or via PROBACI=...):
 #
-#   ./scripts/pin-digests.sh > internal/tool/digests.json
+#   ./src/scripts/pin-digests.sh > src/internal/tool/digests.json
 #
 # Images that fail to pull are reported on stderr and skipped (not pinned).
 set -eu
@@ -46,7 +46,7 @@ for t in tools:
 
 if failed:
     sys.stderr.write("\nNOT pinned (resolve these images): %s\n" % ", ".join(sorted(failed)))
-# Flat name -> digest map, embedded by internal/tool as digests.json.
+# Flat name -> digest map, embedded by src/internal/tool as digests.json.
 flat = {name: meta["digest"] for name, meta in sorted(pinned.items())}
 print(json.dumps(flat, indent=2))
 '

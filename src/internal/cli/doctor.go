@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/simtabi/probaci/internal/detect"
-	"github.com/simtabi/probaci/internal/platform"
-	"github.com/simtabi/probaci/internal/vcs"
+	"github.com/simtabi/probaci/src/internal/detect"
+	"github.com/simtabi/probaci/src/internal/platform"
+	"github.com/simtabi/probaci/src/internal/vcs"
 	"github.com/spf13/cobra"
 )
 

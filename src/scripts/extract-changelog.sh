@@ -2,7 +2,7 @@
 #
 # Print the CHANGELOG.md section for a given tag, used as the GitHub release body.
 #
-#   ./scripts/extract-changelog.sh v0.1.0
+#   ./src/scripts/extract-changelog.sh v0.1.0
 #
 set -euo pipefail
 

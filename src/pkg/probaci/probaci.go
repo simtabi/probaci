@@ -13,14 +13,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/simtabi/probaci/internal/config"
-	"github.com/simtabi/probaci/internal/docker"
-	"github.com/simtabi/probaci/internal/logging"
-	"github.com/simtabi/probaci/internal/paths"
-	"github.com/simtabi/probaci/internal/run"
-	"github.com/simtabi/probaci/internal/secret"
-	"github.com/simtabi/probaci/internal/stage"
-	"github.com/simtabi/probaci/internal/tool"
+	"github.com/simtabi/probaci/src/internal/config"
+	"github.com/simtabi/probaci/src/internal/docker"
+	"github.com/simtabi/probaci/src/internal/logging"
+	"github.com/simtabi/probaci/src/internal/paths"
+	"github.com/simtabi/probaci/src/internal/run"
+	"github.com/simtabi/probaci/src/internal/secret"
+	"github.com/simtabi/probaci/src/internal/stage"
+	"github.com/simtabi/probaci/src/internal/tool"
 )
 
 // App is a fully-wired probaci instance.

@@ -6,34 +6,36 @@
 TASK := $(shell command -v task 2>/dev/null)
 BIN  := bin/probaci
 PKG  := ./cmd/probaci
+# The module lives in src/: every go command names it with -C src, and a bare
+# `go test ./...` at the root would find no packages and pass.
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-LDFLAGS := -s -w -X github.com/simtabi/probaci/internal/version.Version=$(VERSION)
+LDFLAGS := -s -w -X github.com/simtabi/probaci/src/internal/version.Version=$(VERSION)
 
-.PHONY: build install test cover vet lint fmt tidy bundle release-check snapshot clean help
+.PHONY: build install test cover vet lint fmt tidy bundle release-check snapshot clean help sync-docs
 
 ifeq ($(TASK),)
 # --- fallback: invoke the Go toolchain directly ---
 build:
-	go build -ldflags "$(LDFLAGS)" -o $(BIN) $(PKG)
+	go -C src build -ldflags "$(LDFLAGS)" -o ../$(BIN) $(PKG)
 install:
-	go install $(PKG)
+	go -C src install $(PKG)
 test:
-	go test -race ./...
+	go -C src test -race ./...
 cover:
-	go test -coverprofile=coverage.txt ./...
+	go -C src test -coverprofile=../coverage.txt ./...
 vet:
-	go vet ./...
+	go -C src vet ./...
 fmt:
-	gofmt -w .
+	gofmt -w src
 tidy:
-	go mod tidy
+	go -C src mod tidy
 lint:
-	golangci-lint run
+	cd src && golangci-lint run ./...
 release-check:
-	goreleaser check
+	goreleaser check --config src/.goreleaser.yaml
 bundle:
-	goreleaser release --snapshot --clean --skip=publish,sign,docker,sbom
+	goreleaser release --config src/.goreleaser.yaml --snapshot --clean --skip=publish,sign,docker,sbom
 snapshot: bundle
 clean:
 	rm -rf bin dist coverage.txt
@@ -42,6 +44,16 @@ else
 build install test cover vet lint fmt tidy bundle release-check snapshot clean:
 	@$(TASK) $@
 endif
+
+# The module in src/ cannot embed files above it, so `probaci docs` reads a copy
+# of README.md and docs/ in src/embedded/. TestEmbeddedDocsMatchTheRepository
+# fails when the copy drifts; this refreshes it.
+sync-docs:
+	rm -rf src/embedded
+	mkdir -p src/embedded/docs/tools
+	cp README.md src/embedded/
+	cp docs/*.md src/embedded/docs/
+	cp docs/tools/*.md src/embedded/docs/tools/
 
 help:
 	@echo "probaci make targets (delegate to Taskfile.yml when go-task is present):"
