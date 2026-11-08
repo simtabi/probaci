@@ -121,24 +121,6 @@ signs:
     artifacts: checksum
     output: true
 
-# Multi-arch container images built and pushed to ghcr.io in one buildx step,
-# with the multi-platform manifest created automatically. dockers_v2 replaces
-# the deprecated dockers + docker_manifests blocks.
-dockers_v2:
-  - id: probaci
-    ids: [probaci]
-    images:
-      - ghcr.io/simtabi/probaci
-    tags:
-      - "{{ .Version }}"
-      - latest
-    platforms:
-      - linux/amd64
-      - linux/arm64
-    dockerfile: Dockerfile
-    labels:
-      org.opencontainers.image.source: "https://github.com/simtabi/probaci"
-
 homebrew_casks:
   # The tap is shared across all Simtabi products: GoReleaser writes only this
   # product's Casks/probaci.rb into simtabi/homebrew-tap, leaving every other

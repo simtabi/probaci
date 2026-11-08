@@ -93,7 +93,7 @@ release-check: ## Validate the GoReleaser configuration (a check only; builds no
 # It writes into GoReleaser's scratch dist (.cache/goreleaser), never build/,
 # and skips every publishing step.
 bundle: ## Local GoReleaser snapshot into .cache/goreleaser (publishes nothing)
-	goreleaser release --config src/.goreleaser.yaml --snapshot --clean --skip=publish,sign,docker,sbom
+	goreleaser release --config src/.goreleaser.yaml --snapshot --clean --skip=publish,sign,sbom
 
 snapshot: bundle ## Alias for bundle
 

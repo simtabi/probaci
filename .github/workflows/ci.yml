@@ -109,11 +109,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.25"
+          cache-dependency-path: src/go.sum
       # Run gitleaks directly (the gitleaks-action requires a paid license for
-      # org repos). Scans the working tree and honors .gitleaks.toml.
+      # org repos). Scans the working tree and honors .gitleaks.toml. Built from
+      # source at a named release rather than run from a container image, which
+      # this repository no longer uses anywhere.
+      - run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
       - run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" -w /repo \
-            zricethezav/gitleaks:latest dir . --no-banner --redact --exit-code 1
+          "$(go env GOPATH)/bin/gitleaks" dir . --no-banner --redact --exit-code 1
 
   # Dogfood: probaci proves itself. Scoped to the platform/security stages that
   # aren't already covered by the dedicated jobs above (lint/govulncheck/gosec/
