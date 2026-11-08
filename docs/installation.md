@@ -8,25 +8,27 @@ your VCS.
 
 ## Build from source
 
-You need Go (the version `go.mod` names), `git`, and `make` (or
+You need Go (the version `src/go.mod` names), `git`, and `make` (or
 [go-task](https://taskfile.dev)).
 
 ```sh
 git clone https://github.com/simtabi/probaci ~/src/probaci
-make -C ~/src/probaci build       # -> bin/probaci
-~/src/probaci/bin/probaci install  # copies itself to ~/.local/bin (Windows: %LOCALAPPDATA%\Programs\probaci)
+make -C ~/src/probaci build             # -> build/<os>/probaci (macos, linux or windows)
+~/src/probaci/build/*/probaci install    # copies itself to ~/.local/bin (Windows: %LOCALAPPDATA%\Programs\probaci)
 probaci doctor
 ```
 
 `probaci install --system` installs machine-wide (`/usr/local/bin`,
 `%ProgramFiles%`, needs elevation), `--dir DIR` picks an explicit directory, and
-`probaci uninstall [--purge]` removes it again. Copying `bin/probaci` onto your
-`PATH` by hand works just as well.
+`probaci uninstall [--purge]` removes it again. Copying `build/<os>/probaci` onto
+your `PATH` by hand works just as well. `<os>` is the host's OS, written `macos`
+rather than `darwin`.
 
-Without `make`, the dependency-free primitive is
-`go -C ~/src/probaci build -o bin/probaci ./cmd/probaci`. On Windows, run the same
-`git clone` and that `go build` (with `-o bin\probaci.exe`) from PowerShell, then
-run `bin\probaci.exe install`.
+The Go module lives in `src/`, so without `make` the dependency-free primitive is
+`go -C ~/src/probaci/src build -o ../build/linux/probaci ./cmd/probaci` (name the
+folder for your OS). On Windows, run the same `git clone` and
+`go -C src build -o ..\build\windows\probaci.exe ./cmd/probaci` from PowerShell
+in the checkout, then run `build\windows\probaci.exe install`.
 
 ### Pinning a version
 
@@ -44,7 +46,7 @@ make -C ~/src/probaci build
 ```sh
 git -C ~/src/probaci pull --ff-only
 make -C ~/src/probaci build
-~/src/probaci/bin/probaci install
+~/src/probaci/build/*/probaci install
 ```
 
 `probaci version` reports the version the build was stamped with (`git describe`),
@@ -53,9 +55,10 @@ so a build from a branch is still identifiable.
 ### Binary releases
 
 No binary release has been published. The release tooling stays in the tree:
-the GoReleaser config, and `scripts/install.sh` / `scripts/install.ps1`, which
+the GoReleaser config (`src/.goreleaser.yaml`), and `src/scripts/install.sh` /
+`src/scripts/install.ps1`, which
 download release archives. The release workflow would also publish Homebrew and
-Scoop manifests, deb/rpm packages and a `ghcr.io/simtabi/probaci` container image.
+Scoop manifests and deb/rpm packages. probaci no longer builds a container image.
 None of those channels is offered while binary releases are on hold; see
 [release.md](release.md).
 
@@ -91,16 +94,18 @@ machine-wide install (`probaci install --system`, which needs elevation).
 
 ## Development builds
 
-One task definition, three entrypoints:
+The Makefile is the one task definition; `task <name>` (Taskfile.yml) forwards
+to it. The Go module lives in `src/`, and `build/` holds one folder per OS:
 
 ```sh
-task build                               # go-task (Taskfile.yml)
-make build                               # delegates to task, or falls back to go
-go build -o bin/probaci ./cmd/probaci    # the dependency-free primitive
+make build    # build/<host-os>/probaci, e.g. build/macos/probaci
+make cross    # every target in build/targets.txt into build/<os>/, plus build/checksums.txt
+make dist     # make cross, plus .tar.gz/.zip archives in build/archives/
+go -C src build -o ../build/linux/probaci ./cmd/probaci   # the dependency-free primitive
 ```
 
-Produce local release deliverables (archives + checksums in `dist/`) with
-`task bundle`. See [release.md](release.md).
+Verify a cross build with `cd build && shasum -a 256 -c checksums.txt`. None of
+these publishes anything. See [release.md](release.md).
 
 ---
 

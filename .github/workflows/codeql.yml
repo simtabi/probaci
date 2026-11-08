@@ -18,8 +18,15 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.25"
+          cache-dependency-path: src/go.sum
+      # The module lives in src/, which autobuild does not look for: manual mode
+      # builds it explicitly, so the scan never reports clean on zero code.
       - uses: github/codeql-action/init@v4
         with:
           languages: go
-      - uses: github/codeql-action/autobuild@v4
+          build-mode: manual
+      - run: go -C src build ./...
       - uses: github/codeql-action/analyze@v4

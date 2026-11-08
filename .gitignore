@@ -2,7 +2,14 @@
 /probaci
 /bin/
 /dist/
-/build/dist/
+# Generated build output. build/ keeps its tracked inputs (targets.txt, and
+# nfpm.yaml if one is added); everything else in it is generated, one folder
+# per OS (see the Makefile).
+/build/*
+!/build/targets.txt
+!/build/nfpm.yaml
+# GoReleaser's scratch dist (src/.goreleaser.yaml `dist:`).
+/.cache/
 *.exe
 *.test
 *.out

@@ -10,40 +10,48 @@ sync.
 
 ## Local deliverables (no publishing)
 
-Build the downloadable archives locally — useful for testing the binaries users
-will get:
+Build the binaries and archives locally, useful for testing what users would
+get:
 
 ```sh
-task bundle        # or: make bundle
+make cross    # build/<os>/probaci_<os>_<arch>[.exe] plus build/checksums.txt
+make dist     # the same, plus archives and their checksums in build/archives/
 ```
 
-This runs `goreleaser release --snapshot --clean --skip=publish,sign,docker,sbom`
-and writes `dist/probaci_<version>_<os>_<arch>.{tar.gz,zip}` plus `checksums.txt`
-(no OIDC/cosign/registry/syft needed). Validate the config with
-`task release-check` (`goreleaser check`).
+Both run `src/scripts/build-all.sh`, never GoReleaser, and publish nothing.
+`build/` holds one folder per OS (`macos`, never `darwin`) and nothing else;
+`make check-build` fails on anything else, and
+`cd build && shasum -a 256 -c checksums.txt` verifies the binaries.
+
+To exercise the GoReleaser config end to end, `make bundle` runs
+`goreleaser release --config src/.goreleaser.yaml --snapshot --clean --skip=publish,sign,sbom`
+into GoReleaser's scratch dist, `.cache/goreleaser/` (gitignored, never
+`build/`), with no OIDC/cosign/registry/syft needed. Validate the config with
+`make release-check` (`goreleaser check --config src/.goreleaser.yaml`).
 
 ## Install scripts
 
-`install.sh` / `install.ps1` (repo root) download the matching release archive,
+`src/scripts/install.sh` / `src/scripts/install.ps1` download the matching release archive,
 verify its sha256 against `checksums.txt`, and install onto PATH. Their asset
 names must match the GoReleaser archive `name_template`
 (`probaci_<version>_<os>_<arch>`); keep them in sync. Test a script against a
 local bundle without publishing:
 
 ```sh
-task bundle
-PROBACI_VERSION=0.0.0-SNAPSHOT-<commit> PROBACI_BASE_URL="file://$PWD/dist" \
-  PROBACI_INSTALL_DIR=/tmp/probaci sh install.sh
+make bundle
+PROBACI_VERSION=0.0.0-SNAPSHOT-<commit> PROBACI_BASE_URL="file://$PWD/.cache/goreleaser" \
+  PROBACI_INSTALL_DIR=/tmp/probaci sh src/scripts/install.sh
 ```
 
 ## Pinning tool-image digests
 
-The built-in tool images ship pinned by digest (`internal/tool/digests.json`,
+The built-in tool images ship pinned by digest (`src/internal/tool/digests.json`,
 embedded into the binary). Refresh the pins periodically — run in a connected
 environment with a container runtime + python3 and a built `probaci`:
 
 ```sh
-PROBACI=./bin/probaci ./scripts/pin-digests.sh > internal/tool/digests.json
+make build
+PROBACI="$(ls build/*/probaci)" ./src/scripts/pin-digests.sh > src/internal/tool/digests.json
 ```
 
 Images that fail to pull are reported and left unpinned (advisory). Commit the
@@ -70,7 +78,8 @@ regenerated `digests.json`.
    tag, before anything is built.
 4. The `release` workflow runs GoReleaser, which builds the matrix, signs with
    cosign (keyless via OIDC), attaches an SBOM and SLSA provenance, and publishes
-   the GitHub Release, container image, deb/rpm, and Homebrew/Scoop manifests.
+   the GitHub Release, deb/rpm, and Homebrew/Scoop manifests. No container image
+   is built.
 
 ## Build matrix
 
@@ -93,7 +102,15 @@ repo). Run it before every release.
 ## Version stamping
 
 The binary embeds version metadata via `-ldflags` into
-`internal/version`; `probaci version` prints it.
+`github.com/simtabi/probaci/src/internal/version`; `probaci version` prints it.
+
+## Module path and tags
+
+The Go module lives in `src/`, so its path is `github.com/simtabi/probaci/src`.
+Go resolves a subdirectory module only through a tag named after the directory,
+so every release carries two tags on the same commit: `vX.Y.Z`, which the release
+runs from, and `src/vX.Y.Z`. The release workflow creates the `src/` tag itself
+before GoReleaser runs; neither tag is ever moved.
 
 ---
 
