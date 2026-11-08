@@ -1,0 +1,27 @@
+{{define "content"}}{{with .Data}}
+{{template "page_header" "Settings"}}
+{{if .Err}}<div class="alert alert-danger" role="alert">{{icon "alert-triangle"}} Cannot read the configuration: {{.Err}}</div>{{end}}
+<section class="card mb-3" aria-labelledby="server-title">
+  <div class="card-header"><h2 class="card-title" id="server-title">This server</h2></div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-4">Version</dt><dd class="col-sm-8">{{$.Version}}</dd>
+      <dt class="col-sm-4">Listening on</dt><dd class="col-sm-8"><code>{{orDash .BindAddr}}</code></dd>
+      <dt class="col-sm-4">Mode</dt><dd class="col-sm-8">{{if $.ReadOnly}}read-only: runs cannot be started or canceled{{else}}runs can be started and canceled{{end}}</dd>
+      <dt class="col-sm-4">Run history</dt><dd class="col-sm-8">{{if .HistoryDir}}<code>{{.HistoryDir}}</code>{{else}}kept in memory only{{end}}</dd>
+    </dl>
+  </div>
+</section>
+<section class="card" aria-labelledby="config-title">
+  <div class="card-header"><h2 class="card-title" id="config-title">Configuration</h2></div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-4">Home</dt><dd class="col-sm-8"><code>{{orDash .Overview.Home}}</code></dd>
+      <dt class="col-sm-4">Files read</dt><dd class="col-sm-8">{{if .Overview.Sources}}<ol class="mb-0 ps-3">{{range .Overview.Sources}}<li><code>{{.}}</code></li>{{end}}</ol>{{else}}built-in defaults only{{end}}</dd>
+      <dt class="col-sm-4">Containers</dt><dd class="col-sm-8">{{orDash .Overview.Docker}}</dd>
+      <dt class="col-sm-4">Enabled stages</dt><dd class="col-sm-8">{{if .Overview.Stages}}{{join .Overview.Stages ", "}}{{else}}none{{end}}</dd>
+    </dl>
+    <p class="text-secondary small mt-3 mb-0">Change the configuration with <code>probaci config</code> or by editing these files; the next run reads them again.</p>
+  </div>
+</section>
+{{end}}{{end}}

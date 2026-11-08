@@ -1,0 +1,59 @@
+{{define "content"}}{{with .Data}}{{$run := .Run}}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center g-2">
+    <div class="col">
+      <div class="page-pretitle">Run</div>
+      <h1 class="page-title"><code>{{$run.ID}}</code></h1>
+    </div>
+    <div class="col-auto d-flex gap-2">
+      <a class="btn" href="/runs/{{$run.ID}}/report.json">{{icon "download"}}Report (JSON)</a>
+      {{if and (eq $run.Status "running") (not $.ReadOnly)}}
+      <form method="post" action="/runs/{{$run.ID}}/cancel" data-confirm="Stages already finished keep their results; the stage running now is stopped." data-confirm-title="Cancel this run?" data-confirm-button="Cancel run">
+        <input type="hidden" name="csrf" value="{{$.CSRF}}">
+        <button type="submit" class="btn btn-outline-danger">{{icon "player-stop"}}Cancel run</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+</div>
+
+<div id="run" data-live="{{if eq $run.Status "running"}}1{{else}}0{{end}}" data-events-url="/runs/{{$run.ID}}/events" data-last-id="{{.LastID}}">
+  <div class="alert {{runAlert $run.Status}}" role="status">
+    <span id="run-status">{{runText $run.Status}}{{if $run.Err}}: {{$run.Err}}{{end}}</span>
+    <span class="text-secondary ms-2">started {{when $run.Started}} · {{($run.Duration .Now).String}}</span>
+  </div>
+
+  {{range $i, $repo := $run.Repos}}
+  <section class="card mb-3" aria-labelledby="repo-{{$i}}">
+    <div class="card-header"><h2 class="card-title" id="repo-{{$i}}"><code>{{$repo.Path}}</code></h2></div>
+    <div class="table-responsive">
+      <table class="table table-vcenter card-table">
+        <thead><tr><th scope="col">Stage</th><th scope="col">Result</th><th scope="col">Summary</th><th scope="col">Time</th></tr></thead>
+        <tbody>
+        {{range $repo.Stages}}
+          <tr data-repo="{{$repo.Path}}" data-stage="{{.Name}}">
+            <td><code>{{.Name}}</code></td>
+            <td><span class="badge {{stageClass .Status}}" data-role="status">{{.Status}}</span></td>
+            <td class="text-break"><span data-role="summary">{{.Summary}}</span>{{if .Err}}<div class="text-danger small">{{.Err}}</div>{{end}}
+              {{if .Output}}<details class="mt-1"><summary class="small">Output</summary><pre class="log-pane mt-2" tabindex="0">{{.Output}}</pre></details>{{end}}</td>
+            <td class="text-secondary" data-role="duration">{{dur .Duration}}</td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{end}}
+
+  <section class="card" aria-labelledby="log-title">
+    <div class="card-header">
+      <h2 class="card-title" id="log-title">Output</h2>
+      {{if $run.Dropped}}<span class="text-secondary small ms-2">{{$run.Dropped}} later lines not kept; the run's log file has them all</span>{{end}}
+      <div class="card-actions"><label class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="log-follow" checked><span class="form-check-label">Follow</span></label></div>
+    </div>
+    <ol class="log-pane list-unstyled mb-0" id="run-log" tabindex="0" aria-label="Run output">
+      {{range $run.Lines}}<li class="log-line"><time datetime="{{iso .Time}}">{{clock .Time}}</time> <span class="log-src">{{base .Repo}} {{.Stage}}</span> {{.Text}}</li>{{else}}<li class="log-line text-secondary" data-role="empty">No output yet.</li>{{end}}
+    </ol>
+  </section>
+</div>
+{{end}}{{end}}
