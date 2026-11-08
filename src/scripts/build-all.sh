@@ -92,7 +92,7 @@ LDFLAGS="-s -w -X ${PKG}.Version=${VERSION} -X ${PKG}.Commit=${COMMIT} -X ${PKG}
 
 # Extra files bundled into each archive (whichever exist).
 EXTRAS=""
-for f in LICENSE README.md CHANGELOG.md; do
+for f in LICENSE README.md CHANGELOG.md third-party-notices.md; do
   [ -f "$f" ] && EXTRAS="${EXTRAS} ${f}"
 done
 
