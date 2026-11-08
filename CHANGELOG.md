@@ -27,6 +27,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `probaci serve`: a web UI on this machine, as an option beside `run` and `tui`. It lists the
+  repositories and their languages, starts a run with the stages you pick, streams its output and
+  stage results as they happen, can cancel it, and keeps every finished run in
+  `$XDG_STATE_HOME/probaci/runs`. It follows the other Simtabi Go web UIs: a one-time sign-in
+  token, a `Host` allowlist, same-origin and CSRF checks, a strict Content-Security-Policy, Tabler
+  embedded with nothing fetched from the network, an SVG favicon on every page, and `--read-only`.
+  `third-party-notices.md` carries the embedded licenses and ships in the archives.
 - Tests that fail when `build/` holds anything but OS folders, inputs and checksums, when a
   container image or docker step returns, and when the docs offer `go install`. The release
   trigger test now also requires the refusal to be the workflow's first step.

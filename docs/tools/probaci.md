@@ -11,6 +11,7 @@ probaci [command] [flags] [PATH...]
 | `run [PATH...]` | run the pipeline on one or more repositories (default: `.`) |
 | `stage <name> [PATH...]` | run a single stage |
 | `tui [PATH...]` | launch the interactive dashboard |
+| `serve [PATH...]` | open the web UI on this machine ([`serve`](serve.md)) |
 | `doctor [PATH]` | runtime, detected platforms/languages/VCS, config provenance |
 | `init [PATH]` | write a `probaci.json` detected from the repo |
 | `platforms [PATH]` | list supported CI platforms and which are detected |
