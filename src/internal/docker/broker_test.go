@@ -41,3 +41,13 @@ func TestBuildArgsWritable(t *testing.T) {
 		t.Errorf("explicit network not honored; got %s", joined)
 	}
 }
+
+// TestBuildArgsWorkDir: a tool for a module one level down starts in that
+// directory inside the mount, so golangci-lint and govulncheck find packages.
+func TestBuildArgsWorkDir(t *testing.T) {
+	b := &Broker{bin: "docker", cfg: config.Docker{}}
+	joined := strings.Join(b.buildArgs(RunSpec{Image: "golang", Args: []string{"true"}, RepoMount: "/repo", WorkDir: "src"}), " ")
+	if !strings.Contains(joined, "-w /workspace/src ") {
+		t.Errorf("expected -w /workspace/src; got %s", joined)
+	}
+}
