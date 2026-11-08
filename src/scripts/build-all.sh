@@ -1,49 +1,57 @@
 #!/usr/bin/env bash
 #
-# Hand-rolled cross-compile build (GoReleaser is the canonical release path).
-# Regenerates build/targets.txt from an embedded matrix and produces, under
-# build/dist/:
+# Cross-compile every target in build/targets.txt into build/, one folder per OS.
+# It builds on this machine and publishes nothing; GoReleaser
+# (src/.goreleaser.yaml) is the release path, and releases are dispatched by
+# hand only (docs/release.md).
 #
-#   probaci_{os}_{arch}[.exe]     flat, versionless, ready-to-run binaries
-#   probaci_macos_universal       Intel + Apple Silicon fat binary (on macOS)
-#   checksums.txt                   SHA-256 over the bare binaries (bare names)
-#   archives/probaci_{os}_{arch}.{tar.gz,zip}   binary + LICENSE/README/CHANGELOG
-#   archives/checksums.txt          SHA-256 over the archives
+# build/ holds one folder per OS and nothing else:
 #
-# Naming: darwin -> macos, arm -> armvN, .exe on windows. Static
-# (CGO_ENABLED=0), reproducible (-trimpath), stripped (-s -w), with version
-# metadata embedded.
+#   build/targets.txt                         tracked input, "GOOS GOARCH [GOARM]"
+#   build/checksums.txt                       SHA-256 over every binary, as {os}/{file},
+#                                             so `cd build && shasum -a 256 -c checksums.txt`
+#   build/macos/probaci_macos_arm64           ... and _amd64, and _universal on a macOS host
+#   build/linux/probaci_linux_amd64           ... _386, _arm64, _armv6, _armv7
+#   build/windows/probaci_windows_amd64.exe   ... _386, _arm64
+#   build/archives/                           only with ARCHIVES=1: .tar.gz / .zip per
+#                                             binary (plus LICENSE/README/CHANGELOG), and
+#                                             their own bare-name checksums.txt
 #
-# The whole build/ folder is DELETED and REGENERATED on every run — its files
-# (targets.txt and all outputs) are rewritten from scratch, so nothing stale
-# from a removed/renamed target or a previous run ever survives.
+# The OS folder and the name use `macos`, never `darwin`; arm is armvN; Windows
+# binaries end in .exe. Static (CGO_ENABLED=0), reproducible (-trimpath),
+# stripped (-s -w), with version metadata embedded.
 #
-#   VERSION=v1.2.3 ./src/scripts/build-all.sh          # normal
-#   ARCHIVES=0 ./src/scripts/build-all.sh              # binaries only, skip archives
-#   TARGETS=path/to/list ./src/scripts/build-all.sh    # use an external target list
+# Every generated file under build/ is removed first, so nothing stale from a
+# removed target survives. targets.txt (and nfpm.yaml, if one is added) is input
+# and is kept; when targets.txt is missing it is written from the default matrix
+# below.
+#
+#   VERSION=v1.2.3 ./src/scripts/build-all.sh       # binaries and archives
+#   ARCHIVES=0 ./src/scripts/build-all.sh           # binaries only (`make cross`)
+#   TARGETS=path/to/list ./src/scripts/build-all.sh # use an external target list
 #
 # Portable to bash 3.2 (the macOS system bash): no mapfile / wait -n / assoc arrays.
 set -euo pipefail
 
-# The script lives in src/scripts/; build/ and the docs it bundles are at the
+# The script lives in src/scripts/; build/ and the files it bundles are at the
 # repository root, and the module it compiles is src/.
-cd "$(dirname "$0")/../.."
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT"
 
 BINARY="probaci"
 PKG="github.com/simtabi/probaci/src/internal/version"
 BUILD_DIR="build"
-OUT="${BUILD_DIR}/dist"
-ARCHIVE_DIR="${OUT}/archives"
+ARCHIVE_DIR="${BUILD_DIR}/archives"
 TARGETS_FILE="${BUILD_DIR}/targets.txt"
 WITH_ARCHIVES="${ARCHIVES:-1}"
 
-# The canonical target matrix. Regenerated into build/targets.txt each run; used
-# as the fallback when no targets.txt (or --TARGETS override) is present.
-DEFAULT_TARGETS='# Release targets for scripts/build-all.sh — "GOOS GOARCH [GOARM]".
-# Regenerated on every build. GoReleaser (.goreleaser.yaml) is the canonical
-# release path; this drives the hand-rolled fallback. Names use {os}_{arch} with
-# darwin → macos, arm → armvN, and .exe on windows; a macos_universal (Intel +
-# Apple Silicon) fat binary is produced on macOS.
+# The default target matrix, written to build/targets.txt only when that file is
+# missing.
+DEFAULT_TARGETS='# Release targets for src/scripts/build-all.sh -- "GOOS GOARCH [GOARM]".
+# GoReleaser (src/.goreleaser.yaml) is the release path; this drives `make cross`
+# and `make dist`. Output goes to build/<os>/ with names {binary}_{os}_{arch},
+# darwin written as macos, arm as armvN, and .exe on windows; a macos_universal
+# (Intel + Apple Silicon) binary is produced on macOS.
 linux amd64
 linux 386
 linux arm64
@@ -58,15 +66,16 @@ windows arm64'
 # --- preflight ---------------------------------------------------------------
 command -v go >/dev/null 2>&1 || { echo "error: 'go' is not on PATH" >&2; exit 1; }
 
-# Capture the effective target matrix BEFORE wiping build/, in priority order:
-# an explicit TARGETS override, then the existing build/targets.txt, then the
-# embedded default. It is regenerated back into build/targets.txt below.
-if [ -n "${TARGETS:-}" ] && [ -f "$TARGETS" ]; then
-  MATRIX="$(cat "$TARGETS")"
-elif [ -f "$TARGETS_FILE" ]; then
-  MATRIX="$(cat "$TARGETS_FILE")"
+mkdir -p "$BUILD_DIR"
+if [ -n "${TARGETS:-}" ]; then
+  [ -f "$TARGETS" ] || { echo "error: no target list at ${TARGETS}" >&2; exit 1; }
+  MATRIX_FILE="$TARGETS"
 else
-  MATRIX="$DEFAULT_TARGETS"
+  if [ ! -f "$TARGETS_FILE" ]; then
+    printf '%s\n' "$DEFAULT_TARGETS" > "$TARGETS_FILE"
+    echo "==> wrote the default matrix to ${TARGETS_FILE}"
+  fi
+  MATRIX_FILE="$TARGETS_FILE"
 fi
 
 # Portable SHA-256: Linux ships sha256sum, macOS/BSD ship shasum.
@@ -87,22 +96,24 @@ for f in LICENSE README.md CHANGELOG.md; do
   [ -f "$f" ] && EXTRAS="${EXTRAS} ${f}"
 done
 
-# --- fresh build folder ------------------------------------------------------
-echo "==> ${BINARY} ${VERSION} (${COMMIT}) — regenerating ${BUILD_DIR}/"
-case "$BUILD_DIR" in ''|/|.|..) echo "error: unsafe BUILD_DIR='$BUILD_DIR'" >&2; exit 1 ;; esac
-rm -rf "$BUILD_DIR"
-mkdir -p "$OUT"
+# --- clear generated output, keep the inputs ---------------------------------
+echo "==> ${BINARY} ${VERSION} (${COMMIT}) into ${BUILD_DIR}/"
+for entry in "$BUILD_DIR"/* "$BUILD_DIR"/.[!.]*; do
+  [ -e "$entry" ] || continue
+  case "$(basename "$entry")" in
+    targets.txt|nfpm.yaml) ;;
+    *) rm -rf "$entry" ;;
+  esac
+done
 [ "$WITH_ARCHIVES" = "1" ] && mkdir -p "$ARCHIVE_DIR"
-printf '%s\n' "$MATRIX" > "$TARGETS_FILE"   # regenerate the target list
-echo "==> regenerated ${TARGETS_FILE}"
 
-# make_archive <bare-binary-filename> <goos>
+# make_archive <os-folder> <bare-binary-filename> <goos>
 make_archive() {
   [ "$WITH_ARCHIVES" = "1" ] || return 0
-  bin="$1"; goos="$2"
+  folder="$1"; bin="$2"; goos="$3"
   base="${bin%.exe}"                      # probaci_macos_arm64
-  stage="$(mktemp -d)"
-  cp "${OUT}/${bin}" "${stage}/${bin}"
+  stage="$(mktemp -d "${TMPDIR:-/tmp}/build-all.XXXXXX")"
+  cp "${BUILD_DIR}/${folder}/${bin}" "${stage}/${bin}"
   # shellcheck disable=SC2086
   [ -n "$EXTRAS" ] && cp $EXTRAS "${stage}/"
   if [ "$goos" = "windows" ]; then
@@ -110,7 +121,7 @@ make_archive() {
       ( cd "$stage" && zip -qr "${base}.zip" . )
       mv "${stage}/${base}.zip" "${ARCHIVE_DIR}/"
     else
-      echo "  ! 'zip' not found — skipping ${base}.zip" >&2
+      echo "  ! 'zip' not found; skipping ${base}.zip" >&2
     fi
   else
     tar -czf "${ARCHIVE_DIR}/${base}.tar.gz" -C "$stage" .
@@ -133,17 +144,19 @@ while IFS=$' \t\r' read -r goos goarch goarm || [ -n "${goos:-}" ]; do
   ext="";             [ "$goos" = "windows" ] && ext=".exe"
 
   name="${BINARY}_${os_token}_${arch_token}${ext}"
-  printf '  -> %-32s' "$name"
+  mkdir -p "${BUILD_DIR}/${os_token}"
+  printf '  -> %-40s' "${os_token}/${name}"
 
   GOOS="$goos" GOARCH="$goarch" GOARM="${goarm:-}" CGO_ENABLED=0 \
-    go -C src build -trimpath -ldflags "$LDFLAGS" -o "${PWD}/${OUT}/${name}" ./cmd/probaci
+    go -C src build -trimpath -ldflags "$LDFLAGS" \
+      -o "${ROOT}/${BUILD_DIR}/${os_token}/${name}" ./cmd/probaci
   echo "ok"
 
-  make_archive "$name" "$goos"
+  make_archive "$os_token" "$name" "$goos"
   count=$((count + 1))
   [ "$name" = "${BINARY}_macos_amd64" ] && have_macos_amd64=1
   [ "$name" = "${BINARY}_macos_arm64" ] && have_macos_arm64=1
-done < "$TARGETS_FILE"
+done < "$MATRIX_FILE"
 
 [ "$count" -gt 0 ] || { echo "error: no targets built (empty matrix?)" >&2; exit 1; }
 
@@ -151,22 +164,25 @@ done < "$TARGETS_FILE"
 if [ "$have_macos_amd64" = 1 ] && [ "$have_macos_arm64" = 1 ]; then
   if command -v lipo >/dev/null 2>&1; then
     uni="${BINARY}_macos_universal"
-    printf '  -> %-32s' "$uni"
-    lipo -create -output "${OUT}/${uni}" \
-      "${OUT}/${BINARY}_macos_amd64" "${OUT}/${BINARY}_macos_arm64"
+    printf '  -> %-40s' "macos/${uni}"
+    lipo -create -output "${BUILD_DIR}/macos/${uni}" \
+      "${BUILD_DIR}/macos/${BINARY}_macos_amd64" "${BUILD_DIR}/macos/${BINARY}_macos_arm64"
     echo "ok"
-    make_archive "$uni" "darwin"
+    make_archive macos "$uni" "darwin"
   else
-    echo "  ! 'lipo' not available (non-macOS host) — skipping macos_universal" >&2
+    echo "  ! 'lipo' not available (non-macOS host); skipping macos_universal" >&2
   fi
 fi
 
-# --- checksums (bare names so install scripts / self-update can look up) ------
-( cd "$OUT" && sha256 ${BINARY}_* > checksums.txt )
-echo "==> wrote ${OUT}/checksums.txt"
+# --- checksums ---------------------------------------------------------------
+# build/checksums.txt names {os}/{file}, so it verifies from inside build/ as-is.
+( cd "$BUILD_DIR" && find . -mindepth 2 -maxdepth 2 -type f -name "${BINARY}_*" -not -path './archives/*' \
+    | sed 's|^\./||' | LC_ALL=C sort | while IFS= read -r f; do sha256 "$f"; done > checksums.txt )
+echo "==> wrote ${BUILD_DIR}/checksums.txt"
+# The archives' checksums keep bare names, the form release assets use.
 if [ "$WITH_ARCHIVES" = "1" ] && ls "${ARCHIVE_DIR}/${BINARY}_"* >/dev/null 2>&1; then
-  ( cd "$ARCHIVE_DIR" && sha256 ${BINARY}_* > checksums.txt )
+  ( cd "$ARCHIVE_DIR" && sha256 "${BINARY}"_* > checksums.txt )
   echo "==> wrote ${ARCHIVE_DIR}/checksums.txt"
 fi
 
-echo "==> done: ${count} binaries in ${OUT}$( [ "$WITH_ARCHIVES" = "1" ] && echo ", archives in ${ARCHIVE_DIR}" )"
+echo "==> done: ${count} binaries in ${BUILD_DIR}/<os>/$( [ "$WITH_ARCHIVES" = "1" ] && echo ", archives in ${ARCHIVE_DIR}" )"

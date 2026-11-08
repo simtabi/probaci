@@ -1,8 +1,8 @@
-# Release targets for scripts/build-all.sh — "GOOS GOARCH [GOARM]".
-# Regenerated on every build. GoReleaser (.goreleaser.yaml) is the canonical
-# release path; this drives the hand-rolled fallback. Names use {os}_{arch} with
-# darwin → macos, arm → armvN, and .exe on windows; a macos_universal (Intel +
-# Apple Silicon) fat binary is produced on macOS.
+# Release targets for src/scripts/build-all.sh -- "GOOS GOARCH [GOARM]".
+# GoReleaser (src/.goreleaser.yaml) is the release path; this drives `make cross`
+# and `make dist`. Output goes to build/<os>/ with names {binary}_{os}_{arch},
+# darwin written as macos, arm as armvN, and .exe on windows; a macos_universal
+# (Intel + Apple Silicon) binary is produced on macOS.
 linux amd64
 linux 386
 linux arm64

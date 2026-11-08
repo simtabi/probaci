@@ -8,9 +8,11 @@ version: 2
 
 project_name: probaci
 
-# Keep all build tooling under a single build/ folder: inputs (targets.txt) at
-# build/ root, generated artifacts under build/dist/ (gitignored).
-dist: build/dist
+# GoReleaser writes into a scratch dist, .cache/goreleaser/ (gitignored), never
+# into build/. build/ holds one folder per OS and nothing else; `make cross` and
+# `make dist` write it with src/scripts/build-all.sh. A dispatched release
+# uploads straight from this dist, so release assets stay flat.
+dist: .cache/goreleaser
 
 before:
   hooks:
@@ -88,7 +90,7 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
-# Local `goreleaser release --snapshot` (see `task bundle`) gets a sane version.
+# Local `goreleaser release --snapshot` (see `make bundle`) gets a sane version.
 snapshot:
   version_template: "{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}"
 
