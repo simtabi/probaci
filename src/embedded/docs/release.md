@@ -70,7 +70,8 @@ regenerated `digests.json`.
    tag, before anything is built.
 4. The `release` workflow runs GoReleaser, which builds the matrix, signs with
    cosign (keyless via OIDC), attaches an SBOM and SLSA provenance, and publishes
-   the GitHub Release, container image, deb/rpm, and Homebrew/Scoop manifests.
+   the GitHub Release, deb/rpm, and Homebrew/Scoop manifests. No container image
+   is built.
 
 ## Build matrix
 

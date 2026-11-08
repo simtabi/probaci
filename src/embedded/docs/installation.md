@@ -55,7 +55,7 @@ so a build from a branch is still identifiable.
 No binary release has been published. The release tooling stays in the tree:
 the GoReleaser config, and `scripts/install.sh` / `scripts/install.ps1`, which
 download release archives. The release workflow would also publish Homebrew and
-Scoop manifests, deb/rpm packages and a `ghcr.io/simtabi/probaci` container image.
+Scoop manifests and deb/rpm packages. probaci no longer builds a container image.
 None of those channels is offered while binary releases are on hold; see
 [release.md](release.md).
 
