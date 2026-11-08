@@ -1,4 +1,4 @@
-package probaci
+package release_test
 
 import (
 	"os"
@@ -13,7 +13,7 @@ import (
 // refuses to publish without confirm=release-go. A tag push that started
 // GoReleaser is how an unwanted release began elsewhere on 2026-11-02.
 func TestReleaseRunsOnlyOnAConfirmedDispatch(t *testing.T) {
-	wf, err := os.ReadFile(filepath.Join("..", ".github", "workflows", "release.yml"))
+	wf, err := os.ReadFile(filepath.Join(repoRoot(t), ".github", "workflows", "release.yml"))
 	if err != nil {
 		t.Fatal(err)
 	}
