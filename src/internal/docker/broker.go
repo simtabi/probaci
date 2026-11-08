@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path"
 	"runtime"
 	"strconv"
 	"strings"
@@ -47,6 +48,9 @@ type RunSpec struct {
 	Args []string
 	// RepoMount is the host path bind-mounted at /workspace.
 	RepoMount string
+	// WorkDir is a directory relative to the mount to start in ("" for the
+	// mount root), e.g. "src" for a Go module kept in src/.
+	WorkDir string
 	// Writable mounts the repo read-write; default is read-only.
 	Writable bool
 	// Network grants network access ("" means none — fully offline).
@@ -214,7 +218,11 @@ func (b *Broker) buildArgs(spec RunSpec) []string {
 		if !spec.Writable {
 			mount += ":ro"
 		}
-		args = append(args, "-v", mount, "-w", workspace)
+		workdir := workspace
+		if spec.WorkDir != "" {
+			workdir = path.Join(workspace, spec.WorkDir)
+		}
+		args = append(args, "-v", mount, "-w", workdir)
 	}
 
 	if spec.EnvFile != "" {

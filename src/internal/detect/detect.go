@@ -6,6 +6,8 @@ package detect
 import (
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 )
 
 // Language describes a detected ecosystem and its default commands/tools.
@@ -15,6 +17,9 @@ type Language struct {
 	TestCmd    string
 	LintTool   string // tool-registry key
 	AuditTool  string // tool-registry key
+	// Dir is the module's directory relative to the repository root ("" for
+	// the root itself). Commands and tools for this language run there.
+	Dir string
 }
 
 // Project is the result of detection.
@@ -40,11 +45,8 @@ func DetectProject(dir string) Project {
 	if exists(dir, "pyproject.toml") || exists(dir, "requirements.txt") {
 		p.Languages = append(p.Languages, detectPython(dir))
 	}
-	if exists(dir, "go.mod") {
-		p.Languages = append(p.Languages, Language{
-			Name: "go", InstallCmd: "go mod download", TestCmd: "go test ./...",
-			LintTool: "golangci-lint", AuditTool: "govulncheck",
-		})
+	if modDir, ok := goModuleDir(dir); ok {
+		p.Languages = append(p.Languages, goLanguage(modDir))
 	}
 	if exists(dir, "Cargo.toml") {
 		p.Languages = append(p.Languages, Language{
@@ -62,6 +64,63 @@ func DetectProject(dir string) Project {
 		p.Languages = append(p.Languages, detectJava(dir))
 	}
 	return p
+}
+
+// skipModuleDirs are never the project's own module: vendored copies, test
+// fixtures and JavaScript dependencies. Directories starting with "." or "_"
+// are skipped too, as the go tool itself ignores them.
+var skipModuleDirs = map[string]bool{
+	"vendor":       true,
+	"testdata":     true,
+	"node_modules": true,
+}
+
+// goModuleDir finds the Go module: go.mod at the root, else in src/ (the
+// layout every Simtabi Go repository uses), else in the first other immediate
+// subdirectory, in name order. It never looks deeper than one level, so a
+// fixture module elsewhere in the tree is not mistaken for the project.
+func goModuleDir(dir string) (string, bool) {
+	if exists(dir, "go.mod") {
+		return "", true
+	}
+	if exists(filepath.Join(dir, "src"), "go.mod") {
+		return "src", true
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return "", false
+	}
+	var names []string
+	for _, e := range entries {
+		name := e.Name()
+		if !e.IsDir() || skipModuleDirs[name] ||
+			strings.HasPrefix(name, ".") || strings.HasPrefix(name, "_") {
+			continue
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if exists(filepath.Join(dir, name), "go.mod") {
+			return name, true
+		}
+	}
+	return "", false
+}
+
+// goLanguage returns the Go defaults for a module in modDir (relative to the
+// repository root). A nested module gets `go -C <dir>` commands, because a
+// bare `go test ./...` at the root finds no packages and passes.
+func goLanguage(modDir string) Language {
+	l := Language{
+		Name: "go", InstallCmd: "go mod download", TestCmd: "go test ./...",
+		LintTool: "golangci-lint", AuditTool: "govulncheck", Dir: modDir,
+	}
+	if modDir != "" {
+		l.InstallCmd = "go -C " + modDir + " mod download"
+		l.TestCmd = "go -C " + modDir + " test ./..."
+	}
+	return l
 }
 
 func detectNode(dir string, p *Project) (Language, bool) {

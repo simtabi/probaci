@@ -39,6 +39,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and ghcr.io login steps and its `packages: write` permission, and Dependabot's docker ecosystem
   are gone. No image was ever published, so nothing on ghcr.io is affected.
 
+### Fixed
+
+- Language detection finds a Go module kept in `src/`, or in another directory one level down,
+  instead of only a root `go.mod`. Install and test commands become `go -C <dir> …`, and the lint
+  and audit containers start in that directory. `vendor/`, `testdata/`, `node_modules/` and
+  directories starting with `.` or `_` are never taken for the module. probaci's own self-test
+  reported `languages=[]` before this, and CI now asserts it detects Go.
+
 ## [0.1.0] - 2026-06-18
 
 ### Added

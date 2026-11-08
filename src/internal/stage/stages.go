@@ -68,6 +68,12 @@ func (c *stageCtx) deps() platform.Deps {
 
 // brokerTool runs a registry tool over the repo and maps exit status to result.
 func (c *stageCtx) brokerTool(toolName string, extra ...string) result.Result {
+	return c.brokerToolIn("", toolName, extra...)
+}
+
+// brokerToolIn runs a registry tool starting in workDir, a directory relative
+// to the repository root ("" for the root), e.g. a Go module kept in src/.
+func (c *stageCtx) brokerToolIn(workDir, toolName string, extra ...string) result.Result {
 	if c.broker == nil {
 		return skip("no container runtime; " + toolName + " skipped")
 	}
@@ -88,6 +94,7 @@ func (c *stageCtx) brokerTool(toolName string, extra ...string) result.Result {
 		Entrypoint: t.Entrypoint,
 		Args:       args,
 		RepoMount:  c.repo,
+		WorkDir:    filepath.ToSlash(workDir),
 		Network:    network,
 	})
 	if c.emit != nil && out != "" {
@@ -190,7 +197,7 @@ func (c *stageCtx) perLanguage(pick func(detect.Language) string) result.Result 
 		if name == "" {
 			continue
 		}
-		r := c.brokerTool(name)
+		r := c.brokerToolIn(l.Dir, name)
 		ran++
 		outputs = append(outputs, fmt.Sprintf("[%s/%s] %s", l.Name, name, r.Summary))
 		worst = worsen(worst, r.Status)

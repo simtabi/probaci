@@ -135,6 +135,13 @@ jobs:
       # go -C src starts probaci inside src/; it walks up to the git root and
       # proves the whole repository, as it did from the root.
       - run: go -C src run ./cmd/probaci run --ci --only detect,workflow-lint,versions,secrets
+      # The module lives in src/, not at the root. Detection once missed it and
+      # reported languages=[] while every stage still passed, so assert it.
+      - name: Self-test detects Go in src/
+        run: |
+          out=$(go -C src run ./cmd/probaci run --ci --only detect 2>&1)
+          echo "$out"
+          echo "$out" | grep -q 'languages=\[go\]' || { echo "::error::probaci did not detect its own Go module in src/"; exit 1; }
 
   # Cross-compile every target into build/<os>/ on every pull request (and on
   # demand) and attach the binaries to the run, so a reviewer can try the exact
