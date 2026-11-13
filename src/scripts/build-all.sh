@@ -2,8 +2,8 @@
 #
 # Cross-compile every target in build/targets.txt into build/, one folder per OS.
 # It builds on this machine and publishes nothing; GoReleaser
-# (src/.goreleaser.yaml) is the release path, and releases are dispatched by
-# hand only (docs/release.md).
+# (src/.goreleaser.yaml) is the release path, run by release.yml on a pushed
+# vX.Y.Z tag or on request (docs/release.md).
 #
 # build/ holds one folder per OS and nothing else:
 #
