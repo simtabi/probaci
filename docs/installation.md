@@ -1,10 +1,29 @@
 # Installation
 
-probaci is a single static binary, built from source. Binary releases are on
-hold until the maintainer decides otherwise, so this page offers no download,
-install-script, package-manager or `go install` path. The only hard runtime
-dependencies are a container runtime (Docker, rootless Docker, or Podman) and
-your VCS.
+probaci is a single static binary. Two ways to get it, in this order: download
+it from the GitHub release, or build from source. The GitHub release is the only
+channel: this page offers no package-manager or `go install` path. The only hard
+runtime dependencies are a container runtime (Docker, rootless Docker, or
+Podman) and your VCS.
+
+## Download a release
+
+Each [GitHub release](https://github.com/simtabi/probaci/releases) carries bare
+binaries `probaci_<os>_<arch>` (`.exe` on Windows; `macos`, not `darwin`),
+archives, Linux `.deb`/`.rpm`/`.apk` packages, and `checksums.txt` (cosign-signed).
+Download the one for your platform and the checksums, verify, and install:
+
+```sh
+gh release download --repo simtabi/probaci --pattern 'probaci_macos_universal' --pattern checksums.txt
+shasum -a 256 -c checksums.txt --ignore-missing
+chmod +x probaci_macos_universal && ./probaci_macos_universal install
+```
+
+Every asset in `checksums.txt` carries a build-provenance attestation:
+
+```sh
+gh attestation verify probaci_macos_universal --repo simtabi/probaci
+```
 
 ## Build from source
 
@@ -52,14 +71,13 @@ make -C ~/src/probaci build
 `probaci version` reports the version the build was stamped with (`git describe`),
 so a build from a branch is still identifiable.
 
-### Binary releases
+### Other channels
 
-No binary release has been published. The release tooling stays in the tree:
-the GoReleaser config (`src/.goreleaser.yaml`), and `src/scripts/install.sh` /
-`src/scripts/install.ps1`, which
-download release archives. The release workflow would also publish Homebrew and
-Scoop manifests and deb/rpm packages. probaci no longer builds a container image.
-None of those channels is offered while binary releases are on hold; see
+The GitHub release is the only channel. The release workflow used to be set up
+to publish a Homebrew cask, a Scoop manifest and a Winget manifest as well; no
+probaci release ever reached them, and that publishing is gone from
+`src/.goreleaser.yaml`. probaci builds no container image. `src/scripts/install.sh`
+and `src/scripts/install.ps1` download release archives; see
 [release.md](release.md).
 
 ## Run it globally

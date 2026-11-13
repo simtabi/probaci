@@ -38,9 +38,19 @@ probaci is built to catch the common causes automatically:
 
 ## Install
 
-probaci is built from source: binary releases are on hold, so there is no
-download, install-script, package-manager or `go install` channel to use. You need
-Go (the version `src/go.mod` names), `git` and `make`.
+Download the binary for your platform from the
+[GitHub releases](https://github.com/simtabi/probaci/releases)
+(`probaci_<os>_<arch>`, e.g. `probaci_macos_universal`, `probaci_linux_amd64`),
+check it against the release's `checksums.txt`, and let it install itself:
+
+```sh
+shasum -a 256 -c checksums.txt --ignore-missing
+chmod +x probaci_macos_universal && ./probaci_macos_universal install
+```
+
+The GitHub release is the only channel: there is no package-manager or
+`go install` path. Or build from source, with Go (the version `src/go.mod`
+names), `git` and `make`:
 
 ```sh
 git clone https://github.com/simtabi/probaci ~/src/probaci
@@ -49,7 +59,7 @@ make -C ~/src/probaci build             # -> build/<os>/probaci (macos, linux or
 probaci doctor
 ```
 
-Pinning a version, updating, Windows, and PATH guidance are in
+Verifying the attestation, pinning a version, updating, Windows, and PATH guidance are in
 [docs/installation.md](docs/installation.md).
 
 ## Quick start guide and usage

@@ -11,11 +11,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Building probaci needs Go 1.26, and CI runs on it. Go 1.25 has ten standard-library
   vulnerabilities fixed only in 1.26, which the web UI's `net/http` server reaches; `golang.org/x/net`
   moves to v0.60.0 for the same reason, and gosec to v2.30.0.
-- The release workflow no longer starts on a tag push. Binary releases are on hold, and a release
-  runs only when dispatched by hand on a `v[0-9]*` tag with `-f confirm=release-go`; a test fails
-  if an automatic trigger returns.
-- The README and installation guide build probaci from source only: no download, install-script,
-  package-manager or `go install` path is offered while binary releases are on hold.
+- Binaries ship on the GitHub release only. A release builds on a pushed `vX.Y.Z` tag (or a
+  `vX.Y.Z-rc.N` pre-release), or on request for a tag already pushed
+  (`gh workflow run release.yml --repo simtabi/probaci -f tag=vX.Y.Z`). `release.yml` is now a thin
+  caller of simtabi/.github's shared `go-release.yml`, which checks the tag, takes the notes from
+  this file, mirrors `src/vX.Y.Z`, runs GoReleaser and attests provenance. Go comes from a new
+  `.go-version` (`1.26.11`), which every `setup-go` in `ci.yml` and `codeql.yml` now reads too, so
+  CI, CodeQL and the release build on one exact toolchain rather than whatever 1.26 patch a runner
+  has cached; 1.26.11 fixes GO-2026-6859 in `net/http`. This replaces the dispatch-only,
+  `-f confirm=release-go` workflow of this cycle, which never shipped.
+- The README and installation guide offer two paths, in order: download the binary from the GitHub
+  release and check it against `checksums.txt`, or build from source. No package-manager or
+  `go install` path is offered.
 - The Go module moved into `src/`, and its path is now `github.com/simtabi/probaci/src`. Importers
   of `pkg/probaci` use `github.com/simtabi/probaci/src/pkg/probaci`. A release tags `src/vX.Y.Z`
   beside `vX.Y.Z` on the same commit, since that is the tag Go resolves the module through.
@@ -38,8 +45,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   embedded with nothing fetched from the network, an SVG favicon on every page, and `--read-only`.
   `third-party-notices.md` carries the embedded licenses and ships in the archives.
 - Tests that fail when `build/` holds anything but OS folders, inputs and checksums, when a
-  container image or docker step returns, and when the docs offer `go install`. The release
-  trigger test now also requires the refusal to be the workflow's first step.
+  container image or docker step returns, and when the docs offer `go install`.
+- Tests that fail if `release.yml` gains a branch push, schedule, pull-request or release trigger,
+  stops calling the shared release workflow, switches off the `src/vX.Y.Z` alias, or builds with a
+  Go other than CI's, and if `src/.goreleaser.yaml` gains any publishing block besides the GitHub
+  release.
 - A CI `snapshot` job that runs `make cross` on every pull request and uploads the binaries.
 
 ### Removed
@@ -48,6 +58,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`ghcr.io/simtabi/probaci`, linux/amd64 and linux/arm64), the release workflow's QEMU, buildx
   and ghcr.io login steps and its `packages: write` permission, and Dependabot's docker ecosystem
   are gone. No image was ever published, so nothing on ghcr.io is affected.
+- Homebrew cask, Scoop and Winget publishing from `src/.goreleaser.yaml`, and the tap and bucket
+  deploy keys and token the release workflow passed it. No probaci release ever reached them, so
+  nothing in `simtabi/homebrew-tap` or `simtabi/scoop-bucket` is affected.
 
 ### Fixed
 

@@ -1,12 +1,19 @@
 # Release
 
-Releases are tag-driven and built by GoReleaser, and binary releases are on
-hold. A `vX.Y.Z` tag records a version and publishes nothing; a binary release is
-built from a tag only when dispatched by hand with a confirmation (see
-[Cutting a release](#cutting-a-release)). Until binary releases resume, users
-build from source ([installation](installation.md#build-from-source)). The CI
-GoReleaser version is pinned (`~> v2.4`) so the config schema and tool stay in
-sync.
+Releases are tag-driven and built by GoReleaser. Binaries ship on the GitHub
+release only: no Homebrew, Scoop, Winget, `go install`, image or any other
+channel. A release builds in one of two ways:
+
+```sh
+git push origin vX.Y.Z                                              # builds and publishes vX.Y.Z
+gh workflow run release.yml --repo simtabi/probaci -f tag=vX.Y.Z    # the same, for a tag already pushed
+```
+
+Because a pushed `vX.Y.Z` tag publishes, push one only for final code. A tag is
+final: it is never moved, deleted or reused. Test builds use `vX.Y.Z-rc.N`, which
+publishes a GitHub pre-release. The release runs simtabi/.github's shared
+`go-release.yml`, which uses GoReleaser `~> v2`; validate the config locally with
+`make release-check` before tagging.
 
 ## Local deliverables (no publishing)
 
@@ -59,27 +66,29 @@ regenerated `digests.json`.
 
 ## Cutting a release
 
-1. Update `CHANGELOG.md` (move Unreleased → the new version).
-2. Tag and push:
+1. Update `CHANGELOG.md` (move Unreleased → the new version) through a pull
+   request. A final version with no `## [X.Y.Z]` section is refused.
+2. Tag the merge commit on `main` and push the tag. The push builds and
+   publishes the release:
    ```sh
-   git tag v0.1.0
-   git push origin v0.1.0
+   git -C ~/src/probaci tag vX.Y.Z
+   git -C ~/src/probaci push origin vX.Y.Z
    ```
-   Pushing a tag publishes nothing: binary releases are on hold, and probaci is
-   built from source until the owner decides otherwise.
-3. Only when a binary release has been approved for this version, dispatch the
-   `release` workflow on the tag:
+3. To build a release for a tag already on GitHub (`v0.1.0` was tagged before
+   this workflow existed and has no release yet, or a re-run after a failed
+   one), request it instead:
    ```sh
-   gh workflow run release.yml --repo simtabi/probaci --ref vX.Y.Z -f confirm=release-go
+   gh workflow run release.yml --repo simtabi/probaci -f tag=v0.1.0
    ```
-   `vX.Y.Z` must be a tag that is already on GitHub. This publishes for real, so
-   run it only for a version the owner approved. The workflow's first step
-   refuses to run without `confirm=release-go`, or on anything but a `v[0-9]*`
-   tag, before anything is built.
-4. The `release` workflow runs GoReleaser, which builds the matrix, signs with
-   cosign (keyless via OIDC), attaches an SBOM and SLSA provenance, and publishes
-   the GitHub Release, deb/rpm, and Homebrew/Scoop manifests. No container image
-   is built.
+   The workflow refuses anything that is not a `vX.Y.Z` (or `vX.Y.Z-pre`) tag
+   already on GitHub, before anything is built.
+4. `release.yml` is a thin caller of simtabi/.github's shared `go-release.yml`,
+   pinned to a commit. It refuses a GoReleaser config holding any other
+   publishing block, mirrors `src/vX.Y.Z`, and runs GoReleaser, which builds the
+   matrix, signs `checksums.txt` with cosign (keyless via OIDC), attaches an SBOM
+   per archive, and publishes the GitHub Release with the binaries, archives and
+   deb/rpm/apk packages. It then attests build provenance for every asset in
+   `checksums.txt`. No container image is built.
 
 ## Build matrix
 
@@ -91,9 +100,11 @@ Pure Go, `CGO_ENABLED=0`.
 1. Make the repo public on GitHub.
 2. Create the `pypi`/`npm`-equivalent here: a GitHub Release flow via OIDC (no
    long-lived registry credentials).
-3. Add the write deploy keys `HOMEBREW_TAP_DEPLOY_KEY` (on `simtabi/homebrew-tap`) and `SCOOP_BUCKET_DEPLOY_KEY` (on `simtabi/scoop-bucket`), each a repository secret that reaches its one repository and nothing else (`TAP_GITHUB_TOKEN` is only a fallback, and the
-   Winget pull request's token), plus any registry tokens as needed.
-4. Tag `v0.1.0`, then dispatch the release on it as in
+3. No publishing secrets are needed: the release uses the run's own
+   `GITHUB_TOKEN`. The tap, bucket and Winget credentials
+   (`HOMEBREW_TAP_DEPLOY_KEY`, `SCOOP_BUCKET_DEPLOY_KEY`, `TAP_GITHUB_TOKEN`) are
+   no longer read.
+4. Request the release of the existing `v0.1.0` tag as in
    [Cutting a release](#cutting-a-release).
 
 The full org-wide gate is `/opensource/shipping-checklist.md` (local; not in any
@@ -110,7 +121,8 @@ The Go module lives in `src/`, so its path is `github.com/simtabi/probaci/src`.
 Go resolves a subdirectory module only through a tag named after the directory,
 so every release carries two tags on the same commit: `vX.Y.Z`, which the release
 runs from, and `src/vX.Y.Z`. The release workflow creates the `src/` tag itself
-before GoReleaser runs; neither tag is ever moved.
+before GoReleaser runs (it matches no release trigger, so it starts no second
+run); neither tag is ever moved.
 
 ---
 
