@@ -2,48 +2,164 @@ package release_test
 
 import (
 	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
 
-// automaticTrigger matches a trigger that starts a workflow without a person
-// dispatching it, at any indentation under `on:`.
-var automaticTrigger = regexp.MustCompile(`(?m)^[ \t]*(push|schedule|pull_request|pull_request_target|release|workflow_run)\s*:`)
-
-// Go releases are git only until the owner says otherwise, so release.yml must
-// never start on its own: no push, schedule, pull_request or release trigger,
-// and a dispatch whose first step refuses to publish without confirm=release-go
-// on a vX.Y.Z tag. A tag push that started GoReleaser is how an unwanted
-// release began elsewhere on 2026-11-02.
-func TestReleaseRunsOnlyOnAConfirmedDispatch(t *testing.T) {
+// release.yml publishes a release on a pushed version tag, or on request for a tag already
+// pushed, and does nothing else: its triggers are exactly those two, and its one job calls the
+// shared simtabi/.github go-release.yml (owner, 2026-11-13). A branch push, a schedule, a pull
+// request or a release event must never start it. It replaces the dispatch-only, confirm=release-go
+// guard of 2026-11-02.
+//
+// The module has no YAML dependency, so this reads the workflow's indentation: two spaces per
+// level, as the file is written. A reformatted file fails here rather than passing unread.
+func TestReleaseRunsOnAVersionTagOrOnRequest(t *testing.T) {
 	wf := readFile(t, repoRoot(t), ".github", "workflows", "release.yml")
 
-	if m := automaticTrigger.FindString(wf); m != "" {
-		t.Errorf("release.yml has an automatic trigger (%q); it must run on workflow_dispatch only", strings.TrimSpace(m))
+	on := yamlBlock(wf, "", "on")
+	if on == "" {
+		t.Fatal("release.yml has no top-level on: block")
 	}
-	for _, want := range []string{"workflow_dispatch:", "confirm:", "required: true", `"${CONFIRM}" != "release-go"`, "refs/tags/v[0-9]*"} {
-		if !strings.Contains(wf, want) {
-			t.Errorf("release.yml lacks %q: a release needs an explicit, confirmed dispatch on a tag", want)
+	if got := strings.Join(yamlKeys(on, "  "), ","); got != "push,workflow_dispatch" {
+		t.Fatalf("release.yml triggers [%s], want exactly push (version tags) and workflow_dispatch", got)
+	}
+
+	push := yamlBlock(on, "  ", "push")
+	if got := strings.Join(yamlKeys(push, "    "), ","); got != "tags" {
+		t.Fatalf("release.yml's push filters [%s], want tags only, never a branch", got)
+	}
+	tags := regexp.MustCompile(`(?m)^      - '([^']*)'\s*$`).FindAllStringSubmatch(yamlBlock(push, "    ", "tags"), -1)
+	if len(tags) == 0 {
+		t.Fatal("release.yml's push has no quoted tag filters")
+	}
+	for _, m := range tags {
+		if !strings.HasPrefix(m[1], "v[0-9]+.[0-9]+.[0-9]+") {
+			t.Errorf("tag filter %q is not a version tag", m[1])
 		}
 	}
 
-	// The refusal must be the first step, before anything is checked out,
-	// built or published.
-	_, steps, ok := strings.Cut(wf, "steps:")
-	if !ok {
-		t.Fatal("release.yml has no steps")
+	tagInput := yamlBlock(yamlBlock(yamlBlock(on, "  ", "workflow_dispatch"), "    ", "inputs"), "      ", "tag")
+	if !regexp.MustCompile(`(?m)^        required: true\s*$`).MatchString(tagInput) {
+		t.Fatal("release.yml has no required tag input on workflow_dispatch")
 	}
-	first := steps
-	if items := regexp.MustCompile(`(?m)^\s*- `).FindAllStringIndex(steps, 2); len(items) == 2 {
-		first = steps[:items[1][0]]
+
+	jobs := yamlBlock(wf, "", "jobs")
+	if got := strings.Join(yamlKeys(jobs, "  "), ","); got != "release" {
+		t.Fatalf("release.yml jobs [%s], want the one release job", got)
 	}
-	for _, want := range []string{`"release-go"`, "refs/tags/v[0-9]*", "exit 1"} {
-		if !strings.Contains(first, want) {
-			t.Errorf("the first release step must refuse without confirm=release-go on a vX.Y.Z tag; it lacks %q:\n%s", want, first)
+	job := yamlBlock(jobs, "  ", "release")
+	if !regexp.MustCompile(`(?m)^    uses: simtabi/\.github/\.github/workflows/go-release\.yml@[0-9a-f]{40}\b`).MatchString(job) {
+		t.Fatalf("the release job must call the shared go-release.yml pinned to a commit:\n%s", job)
+	}
+	if !strings.Contains(job, "      tag: ${{ inputs.tag || github.ref_name }}\n") {
+		t.Error("the release job must pass tag: ${{ inputs.tag || github.ref_name }}")
+	}
+}
+
+// What the caller hands the shared workflow. The module is github.com/simtabi/probaci/src, which
+// Go resolves only through a src/vX.Y.Z tag, so the alias the shared workflow mirrors
+// (module-alias-prefix, default src/) must stay on, and the config and changelog it reads must be
+// this repository's. Go comes from .go-version, which must say what ci.yml installs, so a release
+// is built with the same Go as every pull request.
+func TestReleaseInputsMatchTheRepository(t *testing.T) {
+	root := repoRoot(t)
+	wf := readFile(t, root, ".github", "workflows", "release.yml")
+	if !strings.Contains(wf, "uses: simtabi/.github/.github/workflows/go-release.yml@") {
+		t.Fatal("release.yml does not call the shared go-release.yml; this guard reads its inputs")
+	}
+	want := map[string]string{
+		"module-alias-prefix": "src/",
+		"goreleaser-config":   "src/.goreleaser.yaml",
+		"go-version-file":     ".go-version",
+		"changelog":           "CHANGELOG.md",
+	}
+	for input, w := range want {
+		m := regexp.MustCompile(`(?m)^\s+` + input + `:\s*['"]?([^'"\s#]*)`).FindStringSubmatch(wf)
+		switch {
+		case m == nil && input == "go-version-file":
+			t.Errorf("release.yml must set go-version-file: %s; the shared default src/go.mod pins Go to 1.26.0", w)
+		case m != nil && m[1] != w:
+			t.Errorf("release.yml sets %s to %q; this repository needs %q", input, m[1], w)
 		}
 	}
+	for _, f := range []string{"src/.goreleaser.yaml", "src/go.mod", "CHANGELOG.md", ".go-version"} {
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(f))); err != nil {
+			t.Errorf("the shared release workflow reads %s, which is missing: %v", f, err)
+		}
+	}
+
+	goVersion := strings.TrimSpace(readFile(t, root, ".go-version"))
+	ci := regexp.MustCompile(`(?m)^\s+go-version:\s*"([^"]+)"`).FindAllStringSubmatch(readFile(t, root, ".github", "workflows", "ci.yml"), -1)
+	if len(ci) == 0 {
+		t.Fatal("ci.yml installs no go-version; this guard compares .go-version against it")
+	}
+	for _, m := range ci {
+		if m[1] != goVersion {
+			t.Errorf("ci.yml installs Go %q but .go-version says %q; a release must build with the Go every pull request tests", m[1], goVersion)
+		}
+	}
+}
+
+// otherChannels are the GoReleaser blocks that publish somewhere other than the GitHub release:
+// package managers, images and arbitrary publishers (~/.claude/rules/go.md, owner, 2026-11-13).
+// nfpms stays: it builds the .deb/.rpm/.apk files that ship as release assets.
+var otherChannels = []string{
+	"brews", "homebrew_casks", "scoops", "winget", "chocolateys", "aurs", "aur_sources",
+	"snapcrafts", "flatpaks", "nix", "dockers", "dockers_v2", "docker_manifests", "docker_signs",
+	"kos", "krews", "npms", "cloudsmiths", "furies", "publishers", "blobs", "uploads", "artifactories",
+}
+
+// The GitHub release is the only channel. The Homebrew cask, Scoop manifest and Winget manifest
+// this config published until 2026-11-13 are gone from it and must not come back; the shared
+// workflow refuses such a config at release time, and this fails first, on the pull request.
+func TestGoReleaserPublishesNowhereElse(t *testing.T) {
+	cfg := readFile(t, repoRoot(t), "src", ".goreleaser.yaml")
+	if !regexp.MustCompile(`(?m)^release:`).MatchString(cfg) {
+		t.Fatal("src/.goreleaser.yaml has no release block; the GitHub release is the channel")
+	}
+	for _, k := range otherChannels {
+		if regexp.MustCompile(`(?m)^` + k + `:`).MatchString(cfg) {
+			t.Errorf("src/.goreleaser.yaml publishes through %q; binaries go to the GitHub release only", k)
+		}
+	}
+}
+
+// yamlBlock returns the lines nested under the key at the given indent, or "" when it is absent.
+func yamlBlock(text, indent, key string) string {
+	var out []string
+	in := false
+	for _, line := range strings.Split(text, "\n") {
+		if strings.HasPrefix(line, indent+key+":") {
+			in = true
+			continue
+		}
+		if in {
+			trimmed := strings.TrimSpace(line)
+			if trimmed != "" && !strings.HasPrefix(trimmed, "#") && !strings.HasPrefix(line, indent+" ") {
+				break
+			}
+			out = append(out, line)
+		}
+	}
+	return strings.Join(out, "\n")
+}
+
+// yamlKeys lists the mapping keys at exactly the given indent, sorted.
+func yamlKeys(text, indent string) []string {
+	re := regexp.MustCompile(`^` + indent + `([A-Za-z_][A-Za-z0-9_-]*):`)
+	var out []string
+	for _, line := range strings.Split(text, "\n") {
+		if m := re.FindStringSubmatch(line); m != nil {
+			out = append(out, m[1])
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // skipDirs are never ours to police: git's own store, dependencies,
@@ -112,9 +228,9 @@ func TestNoContainerImage(t *testing.T) {
 	}
 }
 
-// Releases are on hold, so the docs offer building from source only: no
-// `go install` of this module, which would also serve whatever the Go proxy
-// cached for a tag rather than the code in the checkout.
+// Binaries ship on the GitHub release only, so the docs offer the release
+// download or a build from source: no `go install` of this module, which would
+// serve whatever the Go proxy cached for a tag rather than the released code.
 func TestDocsOfferNoGoInstall(t *testing.T) {
 	root := repoRoot(t)
 	files := []string{filepath.Join(root, "README.md"), filepath.Join(root, "CONTRIBUTING.md")}
@@ -134,7 +250,7 @@ func TestDocsOfferNoGoInstall(t *testing.T) {
 	goInstall := regexp.MustCompile("go install [^\\s`]*github\\.com/")
 	for _, f := range files {
 		if m := goInstall.FindString(readFile(t, f)); m != "" {
-			t.Errorf("%s offers %q; while releases are on hold the docs build from source", filepath.Base(f), m)
+			t.Errorf("%s offers %q; the docs offer the GitHub release or a build from source", filepath.Base(f), m)
 		}
 	}
 }

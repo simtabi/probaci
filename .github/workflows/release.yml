@@ -1,116 +1,45 @@
-name: release
+# Release: build probaci's binaries and publish them on its GitHub release, and nowhere else (no
+# `go install` path, Homebrew, Scoop, Winget, image or any other channel; owner, 2026-11-13).
+# The pipeline is simtabi/.github's shared go-release.yml; this file only says when.
+#
+#   git push origin vX.Y.Z                                              builds and publishes vX.Y.Z
+#   gh workflow run release.yml --repo simtabi/probaci -f tag=vX.Y.Z    the same, for a tag already pushed
+#
+# Push a version tag only for final code: tags are final, and a pushed tag publishes. The shared
+# workflow reads src/.goreleaser.yaml (dist: .cache/goreleaser, cosign-signed checksums), takes the
+# notes from the tag's CHANGELOG.md section and pushes the src/vX.Y.Z module tag, which matches no
+# trigger here. Go comes from .go-version ("1.26", the newest 1.26 patch, as ci.yml installs it)
+# rather than src/go.mod, whose `go 1.26.0` would pin the build to the first 1.26 release.
+# src/internal/release's TestReleaseRunsOnAVersionTagOrOnRequest fails if a trigger is added or the
+# job stops calling the shared workflow.
+name: Release
 
-# Every release is tag-driven: GoReleaser cross-compiles the full matrix, builds
-# the archives/packages and a reproducible source tarball, generates SBOMs and
-# checksums, cosign-signs the checksums, creates the
-# GitHub Release (body from the tagged CHANGELOG section), and updates the
-# Homebrew/Scoop manifests. A build-provenance attestation is then signed for
-# every artifact via the checksums file.
-#
-# Go releases are git only until the owner says otherwise for this project, so
-# nothing here starts on a tag push: pushing a vX.Y.Z tag records a version and
-# publishes nothing. A release is dispatched by hand against the tag, with an
-# explicit confirmation, and refuses to run without both:
-#
-#   gh workflow run release.yml --repo simtabi/probaci --ref vX.Y.Z -f confirm=release-go
-#
-# It stays tag-driven: GoReleaser reads the version from the ref it is run
-# against, and the first step refuses a ref that is not a v[0-9]* tag.
 on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
   workflow_dispatch:
     inputs:
-      confirm:
-        description: Type release-go to publish binaries for the tag this run is dispatched on
+      tag:
+        description: 'An existing vX.Y.Z tag to build and publish'
         required: true
         type: string
 
-# A newer tag must never abort an in-flight publish.
+permissions: {}
+
+# One run per tag, never cancelled: two runs must not publish the same release.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
-permissions:
-  contents: read
-
-# Our own modules are fetched from git, never through proxy.golang.org or
-# sum.golang.org, so the build itself is not what feeds the public proxy a tag.
-env:
-  GOPRIVATE: github.com/simtabi/*
-  GONOSUMDB: github.com/simtabi/*
-
 jobs:
-  goreleaser:
-    runs-on: ubuntu-latest
-    environment: release
-    timeout-minutes: 30
+  release:
     permissions:
-      contents: write      # create the GitHub Release, upload assets
-      id-token: write       # cosign keyless signing + provenance via OIDC
-      attestations: write   # write the build-provenance attestation
-    steps:
-      - name: Refuse without confirmation or a release tag
-        env:
-          CONFIRM: ${{ inputs.confirm }}
-        run: |
-          if [ "${CONFIRM}" != "release-go" ]; then
-            echo "::error::confirm must be release-go; nothing was published"
-            exit 1
-          fi
-          case "${GITHUB_REF}" in
-            refs/tags/v[0-9]*) ;;
-            *) echo "::error::dispatch this on a vX.Y.Z tag (--ref vX.Y.Z), not ${GITHUB_REF}"; exit 1 ;;
-          esac
-
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v7
-        with:
-          go-version: "1.26"
-          cache-dependency-path: src/go.sum
-      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
-      # syft powers GoReleaser's SBOM generation.
-      - uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-      # `go install` needs a tag named after the module's subdirectory: the
-      # module is github.com/simtabi/probaci/src, so Go resolves src/vX.Y.Z and
-      # ignores vX.Y.Z. OSS GoReleaser rejects the prefixed tag as non-semver,
-      # so the release runs off vX.Y.Z and mirrors src/vX.Y.Z onto the same
-      # commit here, where it cannot be forgotten. This workflow starts on no
-      # tag push, so pushing src/... starts no second run. A re-run finds the
-      # tag already there and leaves it alone: a public tag is never moved.
-      - name: Mirror the tag Go resolves the module through
-        run: |
-          alias_tag="src/${GITHUB_REF_NAME}"
-          if git rev-parse -q --verify "refs/tags/${alias_tag}" >/dev/null; then
-            echo "${alias_tag} already exists"
-          else
-            git tag "${alias_tag}" "${GITHUB_REF_NAME}^{commit}"
-            git push origin "refs/tags/${alias_tag}"
-            echo "pushed ${alias_tag}"
-          fi
-      # The notes go to $RUNNER_TEMP, never the checkout: an untracked file in
-      # the working tree makes GoReleaser refuse to release a dirty tree.
-      - name: Extract CHANGELOG section for this tag
-        run: ./src/scripts/extract-changelog.sh "${GITHUB_REF_NAME}" > "$RUNNER_TEMP/release_notes.md"
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
-        with:
-          # Pin the GoReleaser series so the config schema and the tool stay in
-          # sync (avoids `latest` deprecating config keys out from under a release).
-          version: "~> v2.4"
-          args: release --clean --config src/.goreleaser.yaml --release-notes=${{ runner.temp }}/release_notes.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # PAT with write access to the Homebrew tap + Scoop bucket repos.
-          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
-          # Write deploy keys on simtabi/homebrew-tap and simtabi/scoop-bucket. When set, GoReleaser
-          # pushes with them and the token is not used for those two.
-          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
-          SCOOP_BUCKET_DEPLOY_KEY: ${{ secrets.SCOOP_BUCKET_DEPLOY_KEY }}
-      # Sign a build-provenance attestation for every released artifact. The
-      # checksums file lists them all, so `gh attestation verify <file>
-      # --repo simtabi/probaci` works for any downloaded binary or archive.
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v4
-        with:
-          subject-checksums: .cache/goreleaser/checksums.txt
+      contents: write
+      id-token: write
+      attestations: write
+    uses: simtabi/.github/.github/workflows/go-release.yml@745880bdb9b35a21eb16824cfc995f16e1e82fd5  # simtabi/.github#27
+    with:
+      tag: ${{ inputs.tag || github.ref_name }}
+      go-version-file: .go-version
