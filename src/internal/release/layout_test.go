@@ -6,6 +6,7 @@ package release_test
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -59,6 +60,75 @@ func TestBuildLayout(t *testing.T) {
 	dir := filepath.Join(repoRoot(t), "build")
 	if problems := buildLayoutProblems(t, dir); len(problems) > 0 {
 		t.Errorf("build/ breaks the layout (one folder per OS, see the Makefile):\n  %s", strings.Join(problems, "\n  "))
+	}
+	n, floor := buildEntries(t, dir), buildFloor(t)
+	if n < floor {
+		t.Errorf("inspected %d entries in build/, expected at least %d (BUILD_LAYOUT_MIN): the check read less than the build wrote", n, floor)
+	}
+	t.Logf("inspected %d entries in build/ (floor %d)", n, floor)
+}
+
+// buildFloor is the fewest entries build/ must hold: BUILD_LAYOUT_MIN, which the
+// Makefile sets to what the build that just ran wrote, else 1 (targets.txt).
+func buildFloor(t *testing.T) int {
+	t.Helper()
+	raw := os.Getenv("BUILD_LAYOUT_MIN")
+	if raw == "" {
+		return 1
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 {
+		t.Fatalf("BUILD_LAYOUT_MIN=%q is not a positive number", raw)
+	}
+	return n
+}
+
+// buildEntries counts what the layout check inspected: the files at the root of
+// build/ and the files in each OS folder. Folders themselves do not count.
+func buildEntries(t *testing.T, dir string) int {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("reading %s: %v", dir, err)
+	}
+	n := 0
+	for _, e := range entries {
+		switch {
+		case e.Name() == ".DS_Store":
+		case !e.IsDir():
+			n++
+		case osFolders[e.Name()]:
+			inner, err := os.ReadDir(filepath.Join(dir, e.Name()))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, f := range inner {
+				if !f.IsDir() && f.Name() != ".DS_Store" {
+					n++
+				}
+			}
+		}
+	}
+	return n
+}
+
+// The count is what the floor stands on, so it has to count what is there.
+func TestBuildEntriesCountsWhatItInspected(t *testing.T) {
+	dir := t.TempDir()
+	for _, f := range []string{
+		"targets.txt", "checksums.txt", ".DS_Store",
+		"macos/app_macos_arm64", "linux/app_linux_amd64", "archives/app_linux_amd64.tar.gz",
+	} {
+		p := filepath.Join(dir, filepath.FromSlash(f))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := buildEntries(t, dir); got != 5 {
+		t.Errorf("buildEntries counted %d, want 5", got)
 	}
 }
 
