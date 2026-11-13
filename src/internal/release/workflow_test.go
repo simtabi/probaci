@@ -64,8 +64,8 @@ func TestReleaseRunsOnAVersionTagOrOnRequest(t *testing.T) {
 // What the caller hands the shared workflow. The module is github.com/simtabi/probaci/src, which
 // Go resolves only through a src/vX.Y.Z tag, so the alias the shared workflow mirrors
 // (module-alias-prefix, default src/) must stay on, and the config and changelog it reads must be
-// this repository's. Go comes from .go-version, which must say what ci.yml installs, so a release
-// is built with the same Go as every pull request.
+// this repository's. Go comes from .go-version, which every setup-go in ci.yml and codeql.yml
+// reads too, so a release is built with the same Go as every pull request.
 func TestReleaseInputsMatchTheRepository(t *testing.T) {
 	root := repoRoot(t)
 	wf := readFile(t, root, ".github", "workflows", "release.yml")
@@ -93,15 +93,27 @@ func TestReleaseInputsMatchTheRepository(t *testing.T) {
 		}
 	}
 
+	// .go-version is the one Go version: an exact release (x.y.z), so CI, CodeQL and the release
+	// build with the same toolchain whatever the runner has cached. Every setup-go reads it.
 	goVersion := strings.TrimSpace(readFile(t, root, ".go-version"))
-	ci := regexp.MustCompile(`(?m)^\s+go-version:\s*"([^"]+)"`).FindAllStringSubmatch(readFile(t, root, ".github", "workflows", "ci.yml"), -1)
-	if len(ci) == 0 {
-		t.Fatal("ci.yml installs no go-version; this guard compares .go-version against it")
+	if !regexp.MustCompile(`^1\.\d+\.\d+$`).MatchString(goVersion) {
+		t.Errorf(".go-version is %q; it must name an exact Go release (1.y.z)", goVersion)
 	}
-	for _, m := range ci {
-		if m[1] != goVersion {
-			t.Errorf("ci.yml installs Go %q but .go-version says %q; a release must build with the Go every pull request tests", m[1], goVersion)
+	read := 0
+	for _, name := range []string{"ci.yml", "codeql.yml"} {
+		wf := readFile(t, root, ".github", "workflows", name)
+		setups := strings.Count(wf, "uses: actions/setup-go@")
+		read += setups
+		if got := strings.Count(wf, "go-version-file: .go-version"); got != setups {
+			t.Errorf("%s has %d setup-go steps and %d read .go-version; every one must", name, setups, got)
 		}
+		if m := regexp.MustCompile(`(?m)^\s+go-version:`).FindString(wf); m != "" {
+			t.Errorf("%s pins %q; read go-version-file: .go-version instead", name, strings.TrimSpace(m))
+		}
+	}
+	// ci.yml held 7 setup-go steps and codeql.yml 1 on 2026-11-13.
+	if read < 8 {
+		t.Fatalf("found %d setup-go steps in ci.yml and codeql.yml, want at least 8", read)
 	}
 }
 

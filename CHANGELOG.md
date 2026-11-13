@@ -16,7 +16,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`gh workflow run release.yml --repo simtabi/probaci -f tag=vX.Y.Z`). `release.yml` is now a thin
   caller of simtabi/.github's shared `go-release.yml`, which checks the tag, takes the notes from
   this file, mirrors `src/vX.Y.Z`, runs GoReleaser and attests provenance. Go comes from a new
-  `.go-version` (`1.26`, the newest 1.26 patch, as CI installs it). This replaces the dispatch-only,
+  `.go-version` (`1.26.11`), which every `setup-go` in `ci.yml` and `codeql.yml` now reads too, so
+  CI, CodeQL and the release build on one exact toolchain rather than whatever 1.26 patch a runner
+  has cached; 1.26.11 fixes GO-2026-6859 in `net/http`. This replaces the dispatch-only,
   `-f confirm=release-go` workflow of this cycle, which never shipped.
 - The README and installation guide offer two paths, in order: download the binary from the GitHub
   release and check it against `checksums.txt`, or build from source. No package-manager or

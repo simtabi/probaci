@@ -8,7 +8,7 @@
 # Push a version tag only for final code: tags are final, and a pushed tag publishes. The shared
 # workflow reads src/.goreleaser.yaml (dist: .cache/goreleaser, cosign-signed checksums), takes the
 # notes from the tag's CHANGELOG.md section and pushes the src/vX.Y.Z module tag, which matches no
-# trigger here. Go comes from .go-version ("1.26", the newest 1.26 patch, as ci.yml installs it)
+# trigger here. Go comes from .go-version, the one Go version ci.yml and codeql.yml install too,
 # rather than src/go.mod, whose `go 1.26.0` would pin the build to the first 1.26 release.
 # src/internal/release's TestReleaseRunsOnAVersionTagOrOnRequest fails if a trigger is added or the
 # job stops calling the shared workflow.
