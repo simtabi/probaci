@@ -10,8 +10,8 @@ project_name: probaci
 
 # GoReleaser writes into a scratch dist, .cache/goreleaser/ (gitignored), never
 # into build/. build/ holds one folder per OS and nothing else; `make cross` and
-# `make dist` write it with src/scripts/build-all.sh. A dispatched release
-# uploads straight from this dist, so release assets stay flat.
+# `make dist` write it with src/scripts/build-all.sh. A release (simtabi/.github's
+# go-release.yml) uploads straight from this dist, so release assets stay flat.
 dist: .cache/goreleaser
 
 before:
@@ -122,88 +122,11 @@ signs:
     artifacts: checksum
     output: true
 
-homebrew_casks:
-  # The tap is shared across all Simtabi products: GoReleaser writes only this
-  # product's Casks/probaci.rb into simtabi/homebrew-tap, leaving every other
-  # product's cask untouched. Users: `brew install simtabi/tap/probaci`.
-  - name: probaci
-    ids: [archive]
-    directory: Casks
-    repository:
-      owner: simtabi
-      name: homebrew-tap
-      branch: main
-      # Cross-repo tap push needs a PAT (the default GITHUB_TOKEN is scoped to
-      # this repo). Set the TAP_GITHUB_TOKEN secret before releasing.
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-      # Write deploy key on simtabi/homebrew-tap (secret HOMEBREW_TAP_DEPLOY_KEY): reaches that
-      # one repository only. Set, git pushes with it; unset, the URL is empty and the token
-      # path above runs. Measured with GoReleaser 2.18.3.
-      git:
-        url: '{{ if envOrDefault "HOMEBREW_TAP_DEPLOY_KEY" "" }}git@github.com:simtabi/homebrew-tap.git{{ end }}'
-        private_key: '{{ envOrDefault "HOMEBREW_TAP_DEPLOY_KEY" "" }}'
-    commit_author:
-      name: Imani Manyara
-      email: imanimanyara@users.noreply.github.com
-    homepage: "https://opensource.simtabi.com/products/probaci"
-    description: "Prove your CI pipeline before you push."
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr",
-              args: ["-dr", "com.apple.quarantine", "#{staged_path}/probaci"],
-              sudo: false
-          end
-
-scoops:
-  # Shared Scoop bucket, one manifest per product (bucket/probaci.json).
-  - name: probaci
-    ids: [archive]
-    directory: bucket
-    repository:
-      owner: simtabi
-      name: scoop-bucket
-      branch: main
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-      # Write deploy key on simtabi/scoop-bucket (secret SCOOP_BUCKET_DEPLOY_KEY): reaches that
-      # one repository only. Set, git pushes with it; unset, the URL is empty and the token
-      # path above runs. Measured with GoReleaser 2.18.3.
-      git:
-        url: '{{ if envOrDefault "SCOOP_BUCKET_DEPLOY_KEY" "" }}git@github.com:simtabi/scoop-bucket.git{{ end }}'
-        private_key: '{{ envOrDefault "SCOOP_BUCKET_DEPLOY_KEY" "" }}'
-    commit_author:
-      name: Imani Manyara
-      email: imanimanyara@users.noreply.github.com
-    homepage: "https://opensource.simtabi.com/products/probaci"
-    description: "Prove your CI pipeline before you push."
-    license: MIT
-
-winget:
-  # Winget manifest PR'd to microsoft/winget-pkgs (package id Simtabi.probaci).
-  # Gated behind SKIP_WINDOWS_PKGS until the winget-pkgs fork exists.
-  - name: probaci
-    publisher: Simtabi
-    ids: [archive]
-    license: MIT
-    homepage: "https://opensource.simtabi.com/products/probaci"
-    short_description: "Prove your CI pipeline before you push."
-    description: "probaci proves your CI pipeline locally before you push."
-    publisher_url: "https://simtabi.com"
-    release_notes_url: "https://github.com/simtabi/probaci/releases/tag/{{ .Tag }}"
-    repository:
-      owner: simtabi
-      name: winget-pkgs
-      branch: "probaci-{{ .Version }}"
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-      pull_request:
-        enabled: true
-        draft: false
-        base:
-          owner: microsoft
-          name: winget-pkgs
-          branch: master
-    skip_upload: '{{ envOrDefault "SKIP_WINDOWS_PKGS" "true" }}'
+# The GitHub release is the only channel (owner, 2026-11-13): no homebrew_casks, scoops, winget
+# or any other publishing block. No probaci release ever reached the tap, bucket or Winget, so
+# nothing is left there to freeze. simtabi/.github's
+# go-release.yml refuses this config if one of those blocks comes back, and
+# src/internal/release's TestGoReleaserPublishesNowhereElse fails first.
 
 release:
   github:
