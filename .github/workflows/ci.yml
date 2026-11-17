@@ -78,8 +78,11 @@ jobs:
         with:
           go-version-file: .go-version
           cache-dependency-path: src/go.sum
-      # Pinned: govulncheck @latest (v1.4.0) segfaulted under the go1.25 toolchain.
-      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+      # Pinned, and the pin moves with the toolchain: v1.1.4 was held because v1.4.0
+      # segfaulted under go1.25, but v1.1.4 embeds go1.26 source-processing packages
+      # and refuses a `go 1.27` module ("package requires newer Go version go1.27"),
+      # so it must move whenever .go-version crosses a minor.
+      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
       - run: |
           cd src && "$(go env GOPATH)/bin/govulncheck" ./...
 

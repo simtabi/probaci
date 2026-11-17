@@ -8,6 +8,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The Go floor moves to 1.27 and the build toolchain to `1.27.4`. `src/go.mod` keeps the
+  language floor as a minor (`go 1.27.0`) and `.go-version` carries the exact patch, the split
+  `release.yml` already documented. `govulncheck` moves with it, from `v1.1.4` to `v1.9.0`:
+  v1.1.4 embeds go1.26 source-processing packages and refuses a `go 1.27` module outright
+  ("package requires newer Go version go1.27"), so the old pin would have turned the
+  vulnerability scan into nine parse errors rather than a scan. The pin is tied to the
+  toolchain in a comment, because it has to move whenever `.go-version` crosses a minor.
 - `release.yml` calls simtabi/.github's shared `go-release.yml` at its `v0.1.0` release (`b3388da`), pinned as `@<commit>  # v0.1.0` so Dependabot can advance the commit and the tag comment together. v0.1.0 replaces the withdrawn `v1.0.0` and `v1.0.1`: it adds optional inputs only (`node-version` among them), fetches every owned org's Go modules from git rather than proxy.golang.org, and changes nothing a caller passes.
 - `make check-build` asserts how many files it inspected in `build/`, not only that nothing is out of place: `make build` passes a floor of 2 (`targets.txt` and the binary) and `make cross` and `make dist` one per target plus `targets.txt` and `checksums.txt`, through `BUILD_LAYOUT_MIN`, so a check that reads an empty or wrong directory fails instead of passing.
 - Building probaci needs Go 1.26, and CI runs on it. Go 1.25 has ten standard-library
