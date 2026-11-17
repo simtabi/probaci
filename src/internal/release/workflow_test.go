@@ -82,7 +82,7 @@ func TestReleaseInputsMatchTheRepository(t *testing.T) {
 		m := regexp.MustCompile(`(?m)^\s+` + input + `:\s*['"]?([^'"\s#]*)`).FindStringSubmatch(wf)
 		switch {
 		case m == nil && input == "go-version-file":
-			t.Errorf("release.yml must set go-version-file: %s; the shared default src/go.mod pins Go to 1.26.0", w)
+			t.Errorf("release.yml must set go-version-file: %s; the shared default src/go.mod pins Go to 1.27.0", w)
 		case m != nil && m[1] != w:
 			t.Errorf("release.yml sets %s to %q; this repository needs %q", input, m[1], w)
 		}
