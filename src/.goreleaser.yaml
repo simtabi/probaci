@@ -79,7 +79,7 @@ nfpms:
     ids: [probaci]
     package_name: probaci
     formats: [deb, rpm, apk]
-    maintainer: "Imani Manyara <imani@simtabi.com>"
+    maintainer: "Imani Manyara <opensource@simtabi.com>"
     vendor: "Simtabi LLC"
     homepage: "https://opensource.simtabi.com/products/probaci"
     description: "Prove your CI pipeline before you push."
